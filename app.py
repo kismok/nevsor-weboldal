@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import threading
+import asyncio
 from datetime import datetime
 
 import discord
@@ -29,8 +30,6 @@ app = Flask(__name__)
 # ADATBÁZIS
 # =========================================================
 
-# A hosztolt környezetben az /app írásvédett lehet,
-# ezért az adatbázis alapértelmezés szerint /tmp-ben van.
 DB_PATH = os.environ.get(
     "DATABASE_PATH",
     "/tmp/nevsor.db"
@@ -480,10 +479,15 @@ DISCORD_TOKEN = os.environ.get(
     "DISCORD_TOKEN"
 )
 
+DISCORD_GUILD_ID = os.environ.get(
+    "DISCORD_GUILD_ID"
+)
+
 
 intents = discord.Intents.default()
 
 intents.message_content = True
+intents.members = True
 
 
 bot = commands.Bot(
@@ -500,6 +504,10 @@ async def on_ready():
         f"{bot.user}"
     )
 
+
+# =========================================================
+# /LINK KARAKTER_ID
+# =========================================================
 
 @bot.command(
     name="link"
@@ -617,6 +625,260 @@ async def link_character(
     finally:
 
         conn.close()
+
+
+# =========================================================
+# DISCORD SZERVER ÖSSZEVETÉS
+# =========================================================
+
+async def sync_discord_members():
+
+    if not DISCORD_GUILD_ID:
+
+        return {
+            "success": False,
+            "error": "DISCORD_GUILD_ID nincs beállítva."
+        }
+
+
+    guild = bot.get_guild(
+        int(DISCORD_GUILD_ID)
+    )
+
+
+    if not guild:
+
+        return {
+            "success": False,
+            "error": "A Discord szerver nem található."
+        }
+
+
+    try:
+
+        await guild.chunk()
+
+    except Exception:
+
+        pass
+
+
+    conn = get_connection()
+
+
+    members_db = conn.execute(
+        """
+        SELECT
+            id,
+            name,
+            discord_user_id,
+            discord_username
+
+        FROM members
+        """
+    ).fetchall()
+
+
+    linked = []
+
+    not_found = []
+
+    used_discord_ids = set()
+
+
+    # -----------------------------------------------------
+    # MINDEN NÉVSORBAN LÉVŐ TAGHOZ DISCORD KERESÉS
+    # -----------------------------------------------------
+
+    for db_member in members_db:
+
+        found_member = None
+
+        db_name = db_member["name"].strip().lower()
+
+
+        for discord_member in guild.members:
+
+            if discord_member.bot:
+
+                continue
+
+
+            possible_names = [
+                discord_member.name,
+                discord_member.display_name,
+                str(discord_member)
+            ]
+
+
+            for discord_name in possible_names:
+
+                if not discord_name:
+
+                    continue
+
+
+                if (
+                    discord_name
+                    .strip()
+                    .lower()
+                    == db_name
+                ):
+
+                    found_member = discord_member
+
+                    break
+
+
+            if found_member:
+
+                break
+
+
+        # -------------------------------------------------
+        # TALÁLT EGYEZÉST
+        # -------------------------------------------------
+
+        if found_member:
+
+            used_discord_ids.add(
+                found_member.id
+            )
+
+
+            conn.execute(
+                """
+                UPDATE members
+
+                SET
+                    discord_user_id = ?,
+                    discord_username = ?
+
+                WHERE id = ?
+                """,
+                (
+                    str(found_member.id),
+                    str(found_member),
+                    db_member["id"]
+                )
+            )
+
+
+            linked.append({
+                "member_id":
+                    db_member["id"],
+
+                "name":
+                    db_member["name"],
+
+                "discord":
+                    str(found_member)
+            })
+
+
+        # -------------------------------------------------
+        # NEM TALÁLHATÓ DISCORDON
+        # -------------------------------------------------
+
+        else:
+
+            not_found.append({
+                "member_id":
+                    db_member["id"],
+
+                "name":
+                    db_member["name"]
+            })
+
+
+    conn.commit()
+
+    conn.close()
+
+
+    # -----------------------------------------------------
+    # DISCORDON VAN, DE NÉVSORBAN NINCS
+    # -----------------------------------------------------
+
+    discord_only = []
+
+
+    for discord_member in guild.members:
+
+        if discord_member.bot:
+
+            continue
+
+
+        if discord_member.id not in used_discord_ids:
+
+            discord_only.append({
+                "discord_id":
+                    str(discord_member.id),
+
+                "name":
+                    str(discord_member),
+
+                "display_name":
+                    discord_member.display_name
+            })
+
+
+    return {
+
+        "success": True,
+
+        "linked": linked,
+
+        "not_found": not_found,
+
+        "discord_only": discord_only
+
+    }
+
+
+# =========================================================
+# API - DISCORD ÖSSZEVETÉS INDÍTÁSA
+# =========================================================
+
+@app.route(
+    "/discord/sync",
+    methods=["POST"]
+)
+def discord_sync():
+
+    if not bot.is_ready():
+
+        return jsonify({
+            "success": False,
+            "error":
+                "A Discord bot még nincs csatlakozva."
+        }), 503
+
+
+    future = asyncio.run_coroutine_threadsafe(
+        sync_discord_members(),
+        bot.loop
+    )
+
+
+    try:
+
+        result = future.result(
+            timeout=30
+        )
+
+        return jsonify(
+            result
+        )
+
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 # =========================================================
