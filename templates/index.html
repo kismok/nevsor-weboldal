@@ -133,6 +133,7 @@
 
         <div class="title-buttons">
 
+
           <!-- DISCORD SZINKRON -->
 
           <button
@@ -262,7 +263,7 @@
                 <td>
 
 
-                  <!-- RÉSZLETEK - MINDENKI LÁTHATJA -->
+                  <!-- RÉSZLETEK -->
 
                   <button
                     class="icon"
@@ -281,7 +282,7 @@
                   <button
                     class="icon edit"
                     type="button"
-                    onclick="showMember({{ m.id }})"
+                    onclick="editMember({{ m.id }})"
                     title="Szerkesztés"
                   >
                     ✎
@@ -409,7 +410,6 @@
     id="details"
   >
 
-
     <div class="detail-head">
 
       <b>
@@ -427,7 +427,6 @@
     </div>
 
 
-
     <div id="detailContent">
 
       <p class="muted">
@@ -437,7 +436,6 @@
       </p>
 
     </div>
-
 
   </aside>
 
@@ -467,11 +465,9 @@
     </button>
 
 
-
     <h2>
       Új tag hozzáadása
     </h2>
-
 
 
     <form
@@ -479,11 +475,9 @@
       action="/member/add"
     >
 
-
       <label>
         Név
       </label>
-
 
       <input
         name="name"
@@ -491,17 +485,14 @@
       >
 
 
-
       <label>
         Karakter ID
       </label>
-
 
       <input
         name="character_id"
         required
       >
-
 
 
       <button
@@ -511,9 +502,72 @@
         Hozzáadás
       </button>
 
-
     </form>
 
+  </div>
+
+</div>
+
+
+<!-- TAG SZERKESZTÉSE -->
+
+<div
+  class="modal"
+  id="editModal"
+>
+
+  <div class="modal-card">
+
+
+    <button
+      class="close"
+      type="button"
+      onclick="closeEdit()"
+    >
+      ×
+    </button>
+
+
+    <h2>
+      Tag szerkesztése
+    </h2>
+
+
+    <form
+      method="post"
+      id="editForm"
+    >
+
+      <label>
+        Név
+      </label>
+
+      <input
+        id="editName"
+        name="name"
+        required
+      >
+
+
+      <label>
+        Karakter ID
+      </label>
+
+      <input
+        id="editCharacterId"
+        name="character_id"
+        required
+      >
+
+
+      <button
+        class="primary full"
+        type="submit"
+      >
+        💾 Mentés
+      </button>
+
+    </form>
 
   </div>
 
@@ -528,6 +582,10 @@
 
 const loggedIn = {{ 'true' if logged_in else 'false' }};
 
+
+/* =====================================================
+   ÚJ TAG
+===================================================== */
 
 function openAdd() {
 
@@ -546,7 +604,6 @@ function openAdd() {
 }
 
 
-
 function closeAdd() {
 
   const modal =
@@ -561,6 +618,102 @@ function closeAdd() {
 }
 
 
+
+/* =====================================================
+   TAG SZERKESZTÉSE
+===================================================== */
+
+async function editMember(id) {
+
+  if (!loggedIn) {
+
+    window.location.href = "/login";
+
+    return;
+
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/member/" + id
+      );
+
+
+    if (!response.ok) {
+
+      alert(
+        "Nem sikerült lekérni a tag adatait."
+      );
+
+      return;
+
+    }
+
+
+    const m =
+      await response.json();
+
+
+    document
+      .getElementById("editName")
+      .value =
+        m.name;
+
+
+    document
+      .getElementById("editCharacterId")
+      .value =
+        m.character_id;
+
+
+    document
+      .getElementById("editForm")
+      .action =
+        "/member/" + id + "/edit";
+
+
+    document
+      .getElementById("editModal")
+      .classList.add("show");
+
+
+  }
+
+
+  catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Hiba történt a tag adatainak betöltésekor."
+    );
+
+  }
+
+}
+
+
+function closeEdit() {
+
+  const modal =
+    document.getElementById("editModal");
+
+  if (modal) {
+
+    modal.classList.remove("show");
+
+  }
+
+}
+
+
+
+/* =====================================================
+   RÉSZLETEK BEZÁRÁSA
+===================================================== */
 
 function closeDetail() {
 
@@ -717,9 +870,10 @@ async function showMember(id) {
   try {
 
 
-    const response = await fetch(
-      "/member/" + id
-    );
+    const response =
+      await fetch(
+        "/member/" + id
+      );
 
 
     if (!response.ok) {
@@ -733,7 +887,8 @@ async function showMember(id) {
     }
 
 
-    const m = await response.json();
+    const m =
+      await response.json();
 
 
     document
@@ -750,16 +905,13 @@ async function showMember(id) {
 
         <div class="log">
 
-
           <div class="log-top">
-
 
             <b class="points">
 
               +${x.points} pont
 
             </b>
-
 
 
             <form
@@ -779,9 +931,7 @@ async function showMember(id) {
 
             </form>
 
-
           </div>
-
 
 
           <span>
@@ -789,7 +939,6 @@ async function showMember(id) {
             ${x.reason}
 
           </span>
-
 
 
           <small>
@@ -800,7 +949,6 @@ async function showMember(id) {
             )}
 
           </small>
-
 
         </div>
 
@@ -856,7 +1004,6 @@ async function showMember(id) {
     }
 
 
-
     let editorContent = "";
 
 
@@ -865,24 +1012,17 @@ async function showMember(id) {
       editorContent = `
 
 
-      <!-- HIBAPONT HOZZÁADÁSA -->
-
       <div class="box">
 
-
         <h3>
-
           Hibapont hozzáadása
-
         </h3>
-
 
 
         <form
           method="post"
           action="/member/${m.id}/penalty"
         >
-
 
           <input
             type="number"
@@ -893,13 +1033,11 @@ async function showMember(id) {
           >
 
 
-
           <textarea
             name="reason"
             placeholder="Indoklás / megjegyzés..."
             required
           ></textarea>
-
 
 
           <button
@@ -911,29 +1049,20 @@ async function showMember(id) {
 
           </button>
 
-
         </form>
-
 
       </div>
 
 
-
-
-      <!-- DISCORD -->
 
       <div
         class="box"
         id="member-discord"
       >
 
-
         <h3>
-
           Discord profil
-
         </h3>
-
 
 
         <p>
@@ -949,12 +1078,10 @@ async function showMember(id) {
         </p>
 
 
-
         <form
           method="post"
           action="/member/${m.id}/discord"
         >
-
 
           <input
             name="discord_username"
@@ -963,13 +1090,11 @@ async function showMember(id) {
           >
 
 
-
           <input
             name="discord_user_id"
             placeholder="Discord ID"
             value="${m.discord_user_id || ""}"
           >
-
 
 
           <button
@@ -981,9 +1106,7 @@ async function showMember(id) {
 
           </button>
 
-
         </form>
-
 
       </div>
 
@@ -992,16 +1115,12 @@ async function showMember(id) {
     }
 
 
-
     document
       .getElementById("detailContent")
       .innerHTML = `
 
 
-      <!-- PROFIL -->
-
       <div class="profile">
-
 
         <div class="avatar">
 
@@ -1013,13 +1132,11 @@ async function showMember(id) {
         </div>
 
 
-
         <h2>
 
           ${m.name}
 
         </h2>
-
 
 
         <p>
@@ -1034,23 +1151,15 @@ async function showMember(id) {
 
         </p>
 
-
       </div>
 
 
 
-
-      <!-- HIBAPONT ÖSSZESEN -->
-
       <div class="box">
 
-
         <h3>
-
           Hibapont összesen
-
         </h3>
-
 
 
         <div class="bigpoints">
@@ -1058,13 +1167,10 @@ async function showMember(id) {
           ${m.total_points}
 
           <small>
-
             pont
-
           </small>
 
         </div>
-
 
       </div>
 
@@ -1072,25 +1178,17 @@ async function showMember(id) {
       ${editorContent}
 
 
-
-
-      <!-- HIBAPONT NAPLÓ -->
-
       <div
         class="box"
         id="logs"
       >
 
-
         <h3>
-
           Hibapont napló
-
         </h3>
 
 
         ${logs}
-
 
       </div>
 
