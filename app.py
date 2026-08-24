@@ -15,7 +15,8 @@ from flask import (
     redirect,
     url_for,
     jsonify,
-    abort
+    abort,
+    session
 )
 
 
@@ -24,6 +25,41 @@ from flask import (
 # =========================================================
 
 app = Flask(__name__)
+
+# Session titkosító kulcs
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "csereld-le-egy-hosszu-titkos-kulcsra"
+)
+
+
+# =========================================================
+# BEJELENTKEZÉSI ADATOK
+# =========================================================
+
+ADMIN_USERNAME = os.environ.get(
+    "ADMIN_USERNAME",
+    "admin"
+)
+
+ADMIN_PASSWORD = os.environ.get(
+    "ADMIN_PASSWORD",
+    "admin123"
+)
+
+
+def is_logged_in():
+
+    return session.get("logged_in") is True
+
+
+def require_login():
+
+    if not is_logged_in():
+
+        return False
+
+    return True
 
 
 # =========================================================
@@ -101,6 +137,64 @@ def init_db():
 
 
 # =========================================================
+# BEJELENTKEZÉS
+# =========================================================
+
+@app.route(
+    "/login",
+    methods=["GET", "POST"]
+)
+def login():
+
+    if request.method == "POST":
+
+        username = request.form.get(
+            "username",
+            ""
+        ).strip()
+
+        password = request.form.get(
+            "password",
+            ""
+        )
+
+        if (
+            username == ADMIN_USERNAME
+            and password == ADMIN_PASSWORD
+        ):
+
+            session["logged_in"] = True
+
+            return redirect(
+                url_for("index")
+            )
+
+        return render_template(
+            "login.html",
+            error="Hibás felhasználónév vagy jelszó."
+        )
+
+    return render_template(
+        "login.html",
+        error=None
+    )
+
+
+# =========================================================
+# KIJELENTKEZÉS
+# =========================================================
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect(
+        url_for("index")
+    )
+
+
+# =========================================================
 # WEBOLDAL
 # =========================================================
 
@@ -155,7 +249,8 @@ def index():
     return render_template(
         "index.html",
         members=members,
-        q=q
+        q=q,
+        logged_in=is_logged_in()
     )
 
 
@@ -168,6 +263,12 @@ def index():
     methods=["POST"]
 )
 def add_member():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
 
     name = request.form.get(
         "name",
@@ -284,6 +385,9 @@ def member_detail(member_id):
         "total_points":
             member["total_points"],
 
+        "logged_in":
+            is_logged_in(),
+
         "logs":
             [
                 dict(x)
@@ -302,6 +406,12 @@ def member_detail(member_id):
     methods=["POST"]
 )
 def add_penalty(member_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
 
     points = request.form.get(
         "points",
@@ -362,6 +472,12 @@ def add_penalty(member_id):
 )
 def delete_penalty(penalty_id):
 
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
     conn = db()
 
     penalty = conn.execute(
@@ -404,6 +520,12 @@ def delete_penalty(penalty_id):
     methods=["POST"]
 )
 def set_discord(member_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
 
     discord_user_id = request.form.get(
         "discord_user_id",
@@ -454,6 +576,12 @@ def set_discord(member_id):
     methods=["POST"]
 )
 def delete_member(member_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
 
     db().execute(
         """
@@ -686,10 +814,6 @@ async def sync_discord_members():
     used_discord_ids = set()
 
 
-    # -----------------------------------------------------
-    # MINDEN NÉVSORBAN LÉVŐ TAGHOZ DISCORD KERESÉS
-    # -----------------------------------------------------
-
     for db_member in members_db:
 
         found_member = None
@@ -705,9 +829,13 @@ async def sync_discord_members():
 
 
             possible_names = [
+
                 discord_member.name,
+
                 discord_member.display_name,
+
                 str(discord_member)
+
             ]
 
 
@@ -735,10 +863,6 @@ async def sync_discord_members():
                 break
 
 
-        # -------------------------------------------------
-        # TALÁLT EGYEZÉST
-        # -------------------------------------------------
-
         if found_member:
 
             used_discord_ids.add(
@@ -765,6 +889,7 @@ async def sync_discord_members():
 
 
             linked.append({
+
                 "member_id":
                     db_member["id"],
 
@@ -773,21 +898,20 @@ async def sync_discord_members():
 
                 "discord":
                     str(found_member)
+
             })
 
-
-        # -------------------------------------------------
-        # NEM TALÁLHATÓ DISCORDON
-        # -------------------------------------------------
 
         else:
 
             not_found.append({
+
                 "member_id":
                     db_member["id"],
 
                 "name":
                     db_member["name"]
+
             })
 
 
@@ -795,10 +919,6 @@ async def sync_discord_members():
 
     conn.close()
 
-
-    # -----------------------------------------------------
-    # DISCORDON VAN, DE NÉVSORBAN NINCS
-    # -----------------------------------------------------
 
     discord_only = []
 
@@ -813,6 +933,7 @@ async def sync_discord_members():
         if discord_member.id not in used_discord_ids:
 
             discord_only.append({
+
                 "discord_id":
                     str(discord_member.id),
 
@@ -821,6 +942,7 @@ async def sync_discord_members():
 
                 "display_name":
                     discord_member.display_name
+
             })
 
 
@@ -838,7 +960,7 @@ async def sync_discord_members():
 
 
 # =========================================================
-# API - DISCORD ÖSSZEVETÉS INDÍTÁSA
+# API - DISCORD ÖSSZEVETÉS
 # =========================================================
 
 @app.route(
@@ -847,12 +969,23 @@ async def sync_discord_members():
 )
 def discord_sync():
 
-    if not bot.is_ready():
+    if not require_login():
 
         return jsonify({
             "success": False,
+            "error": "Bejelentkezés szükséges."
+        }), 401
+
+
+    if not bot.is_ready():
+
+        return jsonify({
+
+            "success": False,
+
             "error":
                 "A Discord bot még nincs csatlakozva."
+
         }), 503
 
 
@@ -876,8 +1009,11 @@ def discord_sync():
     except Exception as e:
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
+
         }), 500
 
 
