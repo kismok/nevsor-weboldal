@@ -152,7 +152,9 @@ DB_PATH = os.environ.get(
 
 def get_connection():
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(
+        DB_PATH
+    )
 
     conn.row_factory = sqlite3.Row
 
@@ -196,13 +198,17 @@ def init_db():
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS members (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+
         name TEXT NOT NULL,
+
         character_id TEXT NOT NULL UNIQUE,
 
         discord_user_id TEXT UNIQUE,
+
         discord_username TEXT,
 
         payment_status INTEGER NOT NULL DEFAULT 0,
+
         payment_date TEXT,
 
         created_at TEXT NOT NULL
@@ -254,9 +260,13 @@ def init_db():
         "PRAGMA table_info(members)"
     ).fetchall()
 
+
     column_names = [
+
         column["name"]
+
         for column in columns
+
     ]
 
 
@@ -265,6 +275,7 @@ def init_db():
         conn.execute(
             """
             ALTER TABLE members
+
             ADD COLUMN payment_status
             INTEGER NOT NULL DEFAULT 0
             """
@@ -276,12 +287,16 @@ def init_db():
         conn.execute(
             """
             ALTER TABLE members
+
             ADD COLUMN payment_date TEXT
             """
         )
 
 
-    # Régi fizetések egyszeri átvitele
+    # =====================================================
+    # RÉGI FIZETÉSI ADATOK EGYSZERI ÁTVITELE
+    # =====================================================
+
     old_members = conn.execute(
         """
         SELECT
@@ -347,6 +362,7 @@ def init_db():
                 timespec="seconds"
             )
 
+
             conn.execute(
                 """
                 INSERT INTO payments
@@ -369,7 +385,8 @@ def init_db():
                         or 0
                     ),
                     member["payment_date"],
-                    member["created_at"] or now,
+                    member["created_at"]
+                    or now,
                     now
                 )
             )
@@ -396,6 +413,7 @@ def login():
             "username",
             ""
         ).strip()
+
 
         password = request.form.get(
             "password",
@@ -457,30 +475,57 @@ def index():
     selected_month = get_selected_month()
 
 
+    # FONTOS:
+    # Nem használunk m.*-ot, mert a members táblában
+    # maradt egy régi payment_status mező.
+    #
+    # Így biztosan a payments táblából érkező,
+    # kiválasztott havi státusz jelenik meg.
+
     query = """
         SELECT
-            m.*,
+
+            m.id AS id,
+
+            m.name AS name,
+
+            m.character_id AS character_id,
+
+            m.discord_user_id AS discord_user_id,
+
+            m.discord_username AS discord_username,
+
+            m.created_at AS created_at,
+
 
             COALESCE(
                 pmt.payment_status,
                 0
             ) AS payment_status,
 
+
             pmt.payment_date
             AS payment_date,
+
 
             COALESCE(
                 SUM(p.points),
                 0
             ) AS total_points
 
+
         FROM members m
 
+
         LEFT JOIN payments pmt
+
             ON pmt.member_id = m.id
+
             AND pmt.payment_month = ?
 
+
         LEFT JOIN penalty_log p
+
             ON p.member_id = m.id
     """
 
@@ -494,12 +539,17 @@ def index():
 
         query += """
             WHERE
+
                 m.name LIKE ?
+
                 OR m.character_id LIKE ?
+
                 OR m.discord_username LIKE ?
         """
 
+
         like = f"%{q}%"
+
 
         params.extend([
             like,
@@ -509,7 +559,17 @@ def index():
 
 
     query += """
-        GROUP BY m.id
+
+        GROUP BY
+            m.id,
+            m.name,
+            m.character_id,
+            m.discord_user_id,
+            m.discord_username,
+            m.created_at,
+            pmt.payment_status,
+            pmt.payment_date
+
 
         ORDER BY
             m.name COLLATE NOCASE
@@ -581,7 +641,6 @@ def add_member():
     ).strip()
 
 
-    # A HTML "month" mezőt küld
     payment_month = normalize_month(
         request.form.get(
             "month",
@@ -606,7 +665,10 @@ def add_member():
             payment_status
         )
 
-    except ValueError:
+    except (
+        ValueError,
+        TypeError
+    ):
 
         status = 0
 
@@ -618,6 +680,13 @@ def add_member():
     ):
 
         status = 0
+
+
+    # Mentességnél nincs fizetési dátum
+
+    if status == 2:
+
+        payment_date = ""
 
 
     now = datetime.now().isoformat(
@@ -652,8 +721,6 @@ def add_member():
         member_id = cursor.lastrowid
 
 
-        # Mindig létrehozzuk az adott havi fizetési rekordot,
-        # így a Nem fizetve állapot is az adott hónaphoz tartozik.
         conn.execute(
             """
             INSERT INTO payments
@@ -736,7 +803,6 @@ def edit_member(member_id):
     ).strip()
 
 
-    # A HTML "month" mezőt küld
     payment_month = normalize_month(
         request.form.get(
             "month",
@@ -761,7 +827,10 @@ def edit_member(member_id):
             payment_status
         )
 
-    except ValueError:
+    except (
+        ValueError,
+        TypeError
+    ):
 
         status = 0
 
@@ -775,6 +844,13 @@ def edit_member(member_id):
         status = 0
 
 
+    # Mentességnél a dátum automatikusan törlődik
+
+    if status == 2:
+
+        payment_date = ""
+
+
     now = datetime.now().isoformat(
         timespec="seconds"
     )
@@ -785,12 +861,37 @@ def edit_member(member_id):
         conn = db()
 
 
+        # Ellenőrizzük, hogy létezik-e a tag
+
+        member_exists = conn.execute(
+            """
+            SELECT id
+
+            FROM members
+
+            WHERE id = ?
+            """,
+            (
+                member_id,
+            )
+        ).fetchone()
+
+
+        if not member_exists:
+
+            abort(404)
+
+
+        # Tag alapadatok mentése
+
         conn.execute(
             """
             UPDATE members
 
             SET
+
                 name = ?,
+
                 character_id = ?
 
             WHERE id = ?
@@ -803,6 +904,8 @@ def edit_member(member_id):
         )
 
 
+        # Havi fizetési rekord keresése
+
         existing = conn.execute(
             """
             SELECT id
@@ -810,7 +913,9 @@ def edit_member(member_id):
             FROM payments
 
             WHERE
+
                 member_id = ?
+
                 AND payment_month = ?
             """,
             (
@@ -822,17 +927,25 @@ def edit_member(member_id):
 
         if existing:
 
+            # Már létezik az adott hónap,
+            # ezért frissítjük
+
             conn.execute(
                 """
                 UPDATE payments
 
                 SET
+
                     payment_status = ?,
+
                     payment_date = ?,
+
                     updated_at = ?
 
                 WHERE
+
                     member_id = ?
+
                     AND payment_month = ?
                 """,
                 (
@@ -845,6 +958,9 @@ def edit_member(member_id):
             )
 
         else:
+
+            # Még nincs rekord az adott hónaphoz,
+            # ezért létrehozzuk
 
             conn.execute(
                 """
@@ -910,33 +1026,61 @@ def member_detail(member_id):
     member = conn.execute(
         """
         SELECT
-            m.*,
+
+            m.id AS id,
+
+            m.name AS name,
+
+            m.character_id AS character_id,
+
+            m.discord_user_id AS discord_user_id,
+
+            m.discord_username AS discord_username,
+
 
             COALESCE(
                 pmt.payment_status,
                 0
-            ) AS selected_payment_status,
+            ) AS payment_status,
+
 
             pmt.payment_date
-            AS selected_payment_date,
+            AS payment_date,
+
 
             COALESCE(
                 SUM(p.points),
                 0
             ) AS total_points
 
+
         FROM members m
 
+
         LEFT JOIN payments pmt
+
             ON pmt.member_id = m.id
+
             AND pmt.payment_month = ?
 
+
         LEFT JOIN penalty_log p
+
             ON p.member_id = m.id
+
 
         WHERE m.id = ?
 
-        GROUP BY m.id
+
+        GROUP BY
+
+            m.id,
+            m.name,
+            m.character_id,
+            m.discord_user_id,
+            m.discord_username,
+            pmt.payment_status,
+            pmt.payment_date
         """,
         (
             selected_month,
@@ -984,20 +1128,22 @@ def member_detail(member_id):
             member["discord_username"],
 
         "payment_status":
-            member[
-                "selected_payment_status"
-            ],
+            int(
+                member["payment_status"]
+                or 0
+            ),
 
         "payment_date":
-            member[
-                "selected_payment_date"
-            ],
+            member["payment_date"],
 
         "payment_month":
             selected_month,
 
         "total_points":
-            member["total_points"],
+            int(
+                member["total_points"]
+                or 0
+            ),
 
         "logged_in":
             is_logged_in(),
@@ -1206,7 +1352,9 @@ def set_discord(member_id):
             UPDATE members
 
             SET
+
                 discord_user_id = ?,
+
                 discord_username = ?
 
             WHERE id = ?
@@ -1297,6 +1445,7 @@ DISCORD_GUILD_ID = os.environ.get(
 intents = discord.Intents.default()
 
 intents.message_content = True
+
 intents.members = True
 
 
@@ -1342,8 +1491,11 @@ async def link_character(
     member = conn.execute(
         """
         SELECT
+
             id,
+
             name,
+
             character_id
 
         FROM members
@@ -1371,7 +1523,9 @@ async def link_character(
     existing = conn.execute(
         """
         SELECT
+
             name,
+
             character_id
 
         FROM members
@@ -1405,7 +1559,9 @@ async def link_character(
             UPDATE members
 
             SET
+
                 discord_user_id = ?,
+
                 discord_username = ?
 
             WHERE id = ?
@@ -1613,9 +1769,13 @@ async def sync_discord_members():
     members_db = conn.execute(
         """
         SELECT
+
             id,
+
             name,
+
             discord_user_id,
+
             discord_username
 
         FROM members
@@ -1737,7 +1897,9 @@ async def sync_discord_members():
                 UPDATE members
 
                 SET
+
                     discord_user_id = ?,
+
                     discord_username = ?
 
                 WHERE id = ?
@@ -1961,8 +2123,11 @@ def discord_unmatched():
     db_members = conn.execute(
         """
         SELECT
+
             name,
+
             discord_user_id,
+
             discord_username
 
         FROM members
@@ -2032,7 +2197,9 @@ def discord_unmatched():
                 if any(
                     normalize_name(x)
                     == saved_name
+
                     for x in possible_names
+
                     if x
                 ):
 
