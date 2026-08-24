@@ -1,15 +1,25 @@
 <!doctype html>
 <html lang="hu">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Névsor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}"
+  >
 </head>
+
 
 <body>
 
 <div class="app">
+
+
+  <!-- BAL OLDALI MENÜ -->
 
   <aside class="sidebar">
 
@@ -17,47 +27,90 @@
       ▣ <span>NÉVSOR</span>
     </div>
 
+
     <nav>
-      <a class="active" href="/">☷ Névsor</a>
-      <a href="#logs">⚠ Hibapont napló</a>
-      <a href="#discord">◉ Discord kapcsolatok</a>
+
+      <a
+        class="active"
+        href="/"
+      >
+        ☷ Névsor
+      </a>
+
+      <a href="#logs">
+        ⚠ Hibapont napló
+      </a>
+
+      <a href="#discord">
+        ◉ Discord kapcsolatok
+      </a>
+
     </nav>
 
   </aside>
 
 
+
+  <!-- FŐ TARTALOM -->
+
   <main>
+
 
     <header>
 
-      <div class="hamb">☰</div>
+      <div class="hamb">
+        ☰
+      </div>
 
-      <form class="search" method="get">
+
+      <form
+        class="search"
+        method="get"
+      >
+
         <input
           name="q"
           value="{{ q }}"
           placeholder="Keresés név vagy ID alapján..."
         >
+
       </form>
 
     </header>
 
 
+
     <section class="content">
+
 
       <div class="title-row">
 
         <div>
-          <h1>♧ NÉVSOR</h1>
-          <p>Tagok kezelése, hibapontok és adatok</p>
+
+          <h1>
+            ♧ NÉVSOR
+          </h1>
+
+          <p>
+            Tagok kezelése, hibapontok és adatok
+          </p>
+
         </div>
 
-        <button class="primary" type="button" onclick="openAdd()">
+
+        <button
+          class="primary"
+          type="button"
+          onclick="openAdd()"
+        >
           ＋ Új tag hozzáadása
         </button>
 
       </div>
 
+
+
+      <!-- TAGOK TÁBLÁZATA -->
 
       <div class="card">
 
@@ -66,14 +119,23 @@
           <table>
 
             <thead>
+
               <tr>
+
                 <th>Név</th>
+
                 <th>Karakter ID</th>
+
                 <th>Discord</th>
+
                 <th>Hibapontok</th>
+
                 <th>Műveletek</th>
+
               </tr>
+
             </thead>
+
 
 
             <tbody>
@@ -82,19 +144,31 @@
 
               <tr>
 
+
                 <td>
-                  <b>{{ m.name }}</b>
+
+                  <b>
+                    {{ m.name }}
+                  </b>
+
                 </td>
+
+
 
                 <td>
                   {{ m.character_id }}
                 </td>
 
+
+
                 <td>
 
                   {% if m.discord_username %}
 
-                    <span class="online">●</span>
+                    <span class="online">
+                      ●
+                    </span>
+
                     {{ m.discord_username }}
 
                   {% else %}
@@ -108,14 +182,21 @@
                 </td>
 
 
+
                 <td
                   class="{% if m.total_points > 0 %}points{% else %}zero{% endif %}"
                 >
+
                   {{ m.total_points }}
+
                 </td>
 
 
+
                 <td>
+
+
+                  <!-- RÉSZLETEK -->
 
                   <button
                     class="icon"
@@ -125,6 +206,10 @@
                   >
                     ◉
                   </button>
+
+
+
+                  <!-- SZERKESZTÉS -->
 
                   <button
                     class="icon edit"
@@ -136,6 +221,9 @@
                   </button>
 
 
+
+                  <!-- TAG TÖRLÉSE -->
+
                   <form
                     class="inline"
                     method="post"
@@ -146,27 +234,36 @@
                     <button
                       class="icon delete"
                       type="submit"
-                      title="Törlés"
+                      title="Tag törlése"
                     >
                       🗑
                     </button>
 
                   </form>
 
+
                 </td>
 
               </tr>
+
 
 
               {% else %}
 
+
               <tr>
 
-                <td colspan="5" class="empty">
+                <td
+                  colspan="5"
+                  class="empty"
+                >
+
                   Még nincs felvitt tag.
+
                 </td>
 
               </tr>
+
 
               {% endfor %}
 
@@ -183,13 +280,21 @@
   </main>
 
 
+
   <!-- JOBB OLDALI TAG RÉSZLETEK -->
 
-  <aside class="details" id="details">
+  <aside
+    class="details"
+    id="details"
+  >
+
 
     <div class="detail-head">
 
-      <b>Tag részletei</b>
+      <b>
+        Tag részletei
+      </b>
+
 
       <button
         type="button"
@@ -201,13 +306,17 @@
     </div>
 
 
+
     <div id="detailContent">
 
       <p class="muted">
+
         Válassz egy tagot a listából.
+
       </p>
 
     </div>
+
 
   </aside>
 
@@ -216,11 +325,15 @@
 
 
 
-<!-- ÚJ TAG MODAL -->
+<!-- ÚJ TAG HOZZÁADÁSA -->
 
-<div class="modal" id="addModal">
+<div
+  class="modal"
+  id="addModal"
+>
 
   <div class="modal-card">
+
 
     <button
       class="close"
@@ -231,12 +344,23 @@
     </button>
 
 
-    <h2>Új tag hozzáadása</h2>
+
+    <h2>
+      Új tag hozzáadása
+    </h2>
 
 
-    <form method="post" action="/member/add">
 
-      <label>Név</label>
+    <form
+      method="post"
+      action="/member/add"
+    >
+
+
+      <label>
+        Név
+      </label>
+
 
       <input
         name="name"
@@ -244,12 +368,17 @@
       >
 
 
-      <label>Karakter ID</label>
+
+      <label>
+        Karakter ID
+      </label>
+
 
       <input
         name="character_id"
         required
       >
+
 
 
       <button
@@ -259,7 +388,9 @@
         Hozzáadás
       </button>
 
+
     </form>
+
 
   </div>
 
@@ -269,39 +400,60 @@
 
 <script>
 
+
 function openAdd() {
+
   document
     .getElementById("addModal")
     .classList.add("show");
+
 }
+
 
 
 function closeAdd() {
+
   document
     .getElementById("addModal")
     .classList.remove("show");
+
 }
+
 
 
 function closeDetail() {
+
   document
     .getElementById("details")
     .classList.remove("open");
+
 }
+
 
 
 async function showMember(id) {
 
   try {
 
-    const response = await fetch("/member/" + id);
+
+    const response = await fetch(
+      "/member/" + id
+    );
+
 
     if (!response.ok) {
-      alert("Nem sikerült lekérni a tag adatait.");
+
+      alert(
+        "Nem sikerült lekérni a tag adatait."
+      );
+
       return;
+
     }
 
+
     const m = await response.json();
+
 
 
     document
@@ -309,80 +461,180 @@ async function showMember(id) {
       .classList.add("open");
 
 
+
+    /* =====================================
+       HIBAPONT NAPLÓ
+    ===================================== */
+
     const logs = m.logs.map(x => `
 
       <div class="log">
 
-        <b class="points">
-          +${x.points} pont
-        </b>
 
-        <br>
+        <div class="log-top">
+
+
+          <b class="points">
+
+            +${x.points} pont
+
+          </b>
+
+
+
+          <!-- HIBAPONT TÖRLÉSE -->
+
+          <form
+            method="post"
+            action="/penalty/${x.id}/delete"
+            class="inline"
+            onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
+          >
+
+            <button
+              type="submit"
+              class="penalty-delete"
+              title="Hibapont törlése"
+            >
+              🗑
+            </button>
+
+          </form>
+
+
+        </div>
+
+
 
         <span>
+
           ${x.reason}
+
         </span>
 
+
+
         <small>
-          ${x.created_at.replace("T", " ")}
+
+          ${x.created_at.replace(
+            "T",
+            " "
+          )}
+
         </small>
+
 
       </div>
 
     `).join("")
+
     ||
+
     '<p class="muted">Még nincs hibapont.</p>';
 
 
+
+
+    /* =====================================
+       JOBB OLDALI ADATLAP
+    ===================================== */
 
     document
       .getElementById("detailContent")
       .innerHTML = `
 
+
+      <!-- PROFIL -->
+
       <div class="profile">
 
+
         <div class="avatar">
-          ${m.name.charAt(0).toUpperCase()}
+
+          ${m.name
+            .charAt(0)
+            .toUpperCase()
+          }
+
         </div>
 
+
+
         <h2>
+
           ${m.name}
+
         </h2>
 
+
+
         <p>
+
           Karakter ID:
-          <b>${m.character_id}</b>
+
+          <b>
+
+            ${m.character_id}
+
+          </b>
+
         </p>
+
 
       </div>
 
 
 
+
+      <!-- HIBAPONT ÖSSZESEN -->
+
       <div class="box">
 
-        <h3>Hibapont összesen</h3>
+
+        <h3>
+
+          Hibapont összesen
+
+        </h3>
+
+
 
         <div class="bigpoints">
 
           ${m.total_points}
 
-          <small>pont</small>
+          <small>
+
+            pont
+
+          </small>
 
         </div>
+
 
       </div>
 
 
 
+
+      <!-- HIBAPONT HOZZÁADÁSA -->
+
       <div class="box">
 
-        <h3>Hibapont hozzáadása</h3>
+
+        <h3>
+
+          Hibapont hozzáadása
+
+        </h3>
+
 
 
         <form
           method="post"
           action="/member/${m.id}/penalty"
         >
+
 
           <input
             type="number"
@@ -393,6 +645,7 @@ async function showMember(id) {
           >
 
 
+
           <textarea
             name="reason"
             placeholder="Indoklás / megjegyzés..."
@@ -400,33 +653,53 @@ async function showMember(id) {
           ></textarea>
 
 
+
           <button
             class="primary full"
             type="submit"
           >
+
             ＋ Hozzáadás
+
           </button>
 
+
         </form>
+
 
       </div>
 
 
 
-      <div class="box" id="discord">
 
-        <h3>Discord profil</h3>
+      <!-- DISCORD -->
+
+      <div
+        class="box"
+        id="discord"
+      >
+
+
+        <h3>
+
+          Discord profil
+
+        </h3>
+
 
 
         <p>
 
           ${
             m.discord_username
+
               ? "👤 " + m.discord_username
+
               : "Nincs összekapcsolva"
           }
 
         </p>
+
 
 
         <form
@@ -434,11 +707,13 @@ async function showMember(id) {
           action="/member/${m.id}/discord"
         >
 
+
           <input
             name="discord_username"
             placeholder="Discord név"
             value="${m.discord_username || ""}"
           >
+
 
 
           <input
@@ -448,42 +723,67 @@ async function showMember(id) {
           >
 
 
+
           <button
             class="secondary full"
             type="submit"
           >
+
             Discord mentése
+
           </button>
+
 
         </form>
 
+
       </div>
 
 
 
-      <div class="box" id="logs">
 
-        <h3>Hibapont napló</h3>
+      <!-- HIBAPONT NAPLÓ -->
+
+      <div
+        class="box"
+        id="logs"
+      >
+
+
+        <h3>
+
+          Hibapont napló
+
+        </h3>
+
 
         ${logs}
 
+
       </div>
+
 
     `;
 
   }
 
+
   catch (error) {
 
     console.error(error);
 
-    alert("Hiba történt a tag adatainak betöltésekor.");
+    alert(
+      "Hiba történt a tag adatainak betöltésekor."
+    );
 
   }
 
 }
 
+
 </script>
 
+
 </body>
+
 </html>
