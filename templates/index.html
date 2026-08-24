@@ -199,6 +199,10 @@
 
                 <th>Discord</th>
 
+                <th>Státusz</th>
+
+                <th>Fizetés dátuma</th>
+
                 <th>Hibapontok</th>
 
                 <th>Műveletek</th>
@@ -246,6 +250,48 @@
 
                     <span class="muted">
                       Nincs hozzárendelve
+                    </span>
+
+                  {% endif %}
+
+                </td>
+
+
+
+                <!-- FIZETÉSI STÁTUSZ -->
+
+                <td>
+
+                  {% if m.payment_status %}
+
+                    <span class="payment-paid">
+                      🟢 Fizetve
+                    </span>
+
+                  {% else %}
+
+                    <span class="payment-unpaid">
+                      🔴 Nem fizetve
+                    </span>
+
+                  {% endif %}
+
+                </td>
+
+
+
+                <!-- FIZETÉS DÁTUMA -->
+
+                <td>
+
+                  {% if m.payment_date %}
+
+                    {{ m.payment_date }}
+
+                  {% else %}
+
+                    <span class="muted">
+                      Nincs megadva
                     </span>
 
                   {% endif %}
@@ -327,7 +373,7 @@
               <tr>
 
                 <td
-                  colspan="5"
+                  colspan="7"
                   class="empty"
                 >
 
@@ -499,6 +545,53 @@
       >
 
 
+      <!-- FIZETÉSI STÁTUSZ -->
+
+      <label>
+        Fizetési státusz
+      </label>
+
+      <div class="payment-switch-row">
+
+        <span id="addPaymentLabel">
+          🔴 Nem fizetve
+        </span>
+
+        <label class="switch">
+
+          <input
+            type="checkbox"
+            id="addPaymentStatus"
+            onchange="updateAddPaymentStatus()"
+          >
+
+          <span class="slider"></span>
+
+        </label>
+
+      </div>
+
+
+      <input
+        type="hidden"
+        name="payment_status"
+        id="addPaymentStatusValue"
+        value="0"
+      >
+
+
+      <!-- NAPTÁR -->
+
+      <label>
+        Fizetés dátuma
+      </label>
+
+      <input
+        type="date"
+        name="payment_date"
+      >
+
+
       <button
         class="primary full"
         type="submit"
@@ -565,6 +658,54 @@
       >
 
 
+      <!-- FIZETÉSI STÁTUSZ -->
+
+      <label>
+        Fizetési státusz
+      </label>
+
+      <div class="payment-switch-row">
+
+        <span id="editPaymentLabel">
+          🔴 Nem fizetve
+        </span>
+
+        <label class="switch">
+
+          <input
+            type="checkbox"
+            id="editPaymentStatus"
+            onchange="updateEditPaymentStatus()"
+          >
+
+          <span class="slider"></span>
+
+        </label>
+
+      </div>
+
+
+      <input
+        type="hidden"
+        name="payment_status"
+        id="editPaymentStatusValue"
+        value="0"
+      >
+
+
+      <!-- NAPTÁR -->
+
+      <label>
+        Fizetés dátuma
+      </label>
+
+      <input
+        type="date"
+        id="editPaymentDate"
+        name="payment_date"
+      >
+
+
       <button
         class="primary full"
         type="submit"
@@ -589,6 +730,96 @@ const loggedIn = {{ 'true' if logged_in else 'false' }};
 
 
 /* =====================================================
+   FIZETÉSI STÁTUSZ - ÚJ TAG
+===================================================== */
+
+function updateAddPaymentStatus() {
+
+  const checkbox =
+    document.getElementById(
+      "addPaymentStatus"
+    );
+
+
+  const value =
+    document.getElementById(
+      "addPaymentStatusValue"
+    );
+
+
+  const label =
+    document.getElementById(
+      "addPaymentLabel"
+    );
+
+
+  if (checkbox.checked) {
+
+    value.value = "1";
+
+    label.innerHTML =
+      "🟢 Fizetve";
+
+  }
+
+  else {
+
+    value.value = "0";
+
+    label.innerHTML =
+      "🔴 Nem fizetve";
+
+  }
+
+}
+
+
+/* =====================================================
+   FIZETÉSI STÁTUSZ - SZERKESZTÉS
+===================================================== */
+
+function updateEditPaymentStatus() {
+
+  const checkbox =
+    document.getElementById(
+      "editPaymentStatus"
+    );
+
+
+  const value =
+    document.getElementById(
+      "editPaymentStatusValue"
+    );
+
+
+  const label =
+    document.getElementById(
+      "editPaymentLabel"
+    );
+
+
+  if (checkbox.checked) {
+
+    value.value = "1";
+
+    label.innerHTML =
+      "🟢 Fizetve";
+
+  }
+
+  else {
+
+    value.value = "0";
+
+    label.innerHTML =
+      "🔴 Nem fizetve";
+
+  }
+
+}
+
+
+/* =====================================================
    ÚJ TAG
 ===================================================== */
 
@@ -601,6 +832,23 @@ function openAdd() {
     return;
 
   }
+
+
+  document
+    .getElementById("addPaymentStatus")
+    .checked = false;
+
+
+  document
+    .getElementById("addPaymentStatusValue")
+    .value = "0";
+
+
+  document
+    .getElementById("addPaymentLabel")
+    .innerHTML =
+      "🔴 Nem fizetve";
+
 
   document
     .getElementById("addModal")
@@ -672,6 +920,44 @@ async function editMember(id) {
       .getElementById("editCharacterId")
       .value =
         m.character_id;
+
+
+    const paymentCheckbox =
+      document.getElementById(
+        "editPaymentStatus"
+      );
+
+
+    paymentCheckbox.checked =
+      Number(m.payment_status) === 1;
+
+
+    document
+      .getElementById(
+        "editPaymentStatusValue"
+      )
+      .value =
+        Number(m.payment_status) === 1
+          ? "1"
+          : "0";
+
+
+    document
+      .getElementById(
+        "editPaymentLabel"
+      )
+      .innerHTML =
+        Number(m.payment_status) === 1
+          ? "🟢 Fizetve"
+          : "🔴 Nem fizetve";
+
+
+    document
+      .getElementById(
+        "editPaymentDate"
+      )
+      .value =
+        m.payment_date || "";
 
 
     document
@@ -1296,6 +1582,47 @@ async function showMember(id) {
           <b>
 
             ${m.character_id}
+
+          </b>
+
+        </p>
+
+      </div>
+
+
+
+      <!-- FIZETÉSI STÁTUSZ -->
+
+      <div class="box">
+
+        <h3>
+          Fizetési státusz
+        </h3>
+
+
+        <p>
+
+          ${
+            Number(m.payment_status) === 1
+
+              ? "🟢 Fizetve"
+
+              : "🔴 Nem fizetve"
+          }
+
+        </p>
+
+
+        <p>
+
+          Fizetés dátuma:
+
+          <b>
+
+            ${
+              m.payment_date ||
+              "Nincs megadva"
+            }
 
           </b>
 
