@@ -18,6 +18,7 @@
 
 <div class="app">
 
+
   <!-- BAL OLDALI MENÜ -->
 
   <aside class="sidebar">
@@ -58,6 +59,7 @@
 
   <main>
 
+
     <header>
 
       <div class="hamb">
@@ -71,6 +73,12 @@
       >
 
         <input
+          type="hidden"
+          name="month"
+          value="{{ selected_month }}"
+        >
+
+        <input
           name="q"
           value="{{ q }}"
           placeholder="Keresés név vagy ID alapján..."
@@ -78,8 +86,6 @@
 
       </form>
 
-
-      <!-- BEJELENTKEZÉS / KIJELENTKEZÉS -->
 
       <div class="auth-buttons">
 
@@ -115,6 +121,7 @@
 
     <section class="content">
 
+
       <div class="title-row">
 
         <div>
@@ -124,7 +131,7 @@
           </h1>
 
           <p>
-            Tagok kezelése, hibapontok és adatok
+            Tagok kezelése, hibapontok és havi fizetések
           </p>
 
         </div>
@@ -133,6 +140,7 @@
         {% if logged_in %}
 
         <div class="title-buttons">
+
 
           <button
             class="secondary"
@@ -160,7 +168,54 @@
 
 
 
-      <!-- DISCORD SZINKRON EREDMÉNY -->
+      <!-- HÓNAP VÁLTÓ -->
+
+      <div class="month-selector">
+
+        <button
+          class="icon"
+          type="button"
+          onclick="changeMonth(-1)"
+          title="Előző hónap"
+        >
+          ←
+        </button>
+
+
+        <div class="selected-month">
+
+          <span>
+            📅
+          </span>
+
+          <b id="monthTitle">
+            {{ selected_month }}
+          </b>
+
+        </div>
+
+
+        <button
+          class="icon"
+          type="button"
+          onclick="changeMonth(1)"
+          title="Következő hónap"
+        >
+          →
+        </button>
+
+
+        <button
+          class="secondary"
+          type="button"
+          onclick="goCurrentMonth()"
+        >
+          Mai hónap
+        </button>
+
+      </div>
+
+
 
       {% if logged_in %}
 
@@ -186,16 +241,23 @@
               <tr>
 
                 <th>Név</th>
+
                 <th>Karakter ID</th>
+
                 <th>Discord</th>
+
                 <th>Státusz</th>
+
                 <th>Fizetés dátuma</th>
+
                 <th>Hibapontok</th>
+
                 <th>Műveletek</th>
 
               </tr>
 
             </thead>
+
 
 
             <tbody>
@@ -204,14 +266,21 @@
 
               <tr>
 
+
                 <td>
-                  <b>{{ m.name }}</b>
+
+                  <b>
+                    {{ m.name }}
+                  </b>
+
                 </td>
+
 
 
                 <td>
                   {{ m.character_id }}
                 </td>
+
 
 
                 <td>
@@ -235,20 +304,21 @@
                 </td>
 
 
+
                 <!-- FIZETÉSI STÁTUSZ -->
 
                 <td>
 
-                  {% if m.payment_status == 1 %}
+                  {% if m.payment_status == 2 %}
+
+                    <span class="payment-exempt">
+                      🟡 Mentesség
+                    </span>
+
+                  {% elif m.payment_status == 1 and m.payment_date and m.payment_date.startswith(selected_month) %}
 
                     <span class="payment-paid">
                       🟢 Fizetve
-                    </span>
-
-                  {% elif m.payment_status == 2 %}
-
-                    <span class="payment-exempt">
-                      🔵 Mentesség
                     </span>
 
                   {% else %}
@@ -262,6 +332,7 @@
                 </td>
 
 
+
                 <!-- FIZETÉS DÁTUMA -->
 
                 <td>
@@ -269,17 +340,17 @@
                   {% if m.payment_status == 2 %}
 
                     <span class="muted">
-                      Nem szükséges
+                      Mentesség
                     </span>
 
-                  {% elif m.payment_date %}
+                  {% elif m.payment_date and m.payment_date.startswith(selected_month) %}
 
                     {{ m.payment_date }}
 
                   {% else %}
 
                     <span class="muted">
-                      Nincs megadva
+                      Erre a hónapra nincs fizetés
                     </span>
 
                   {% endif %}
@@ -287,16 +358,19 @@
                 </td>
 
 
+
                 <td
                   class="{% if m.total_points > 0 %}points{% else %}zero{% endif %}"
                 >
+
                   {{ m.total_points }}
+
                 </td>
+
 
 
                 <td>
 
-                  <!-- RÉSZLETEK -->
 
                   <button
                     class="icon"
@@ -310,8 +384,6 @@
 
                   {% if logged_in %}
 
-                  <!-- SZERKESZTÉS -->
-
                   <button
                     class="icon edit"
                     type="button"
@@ -322,14 +394,18 @@
                   </button>
 
 
-                  <!-- TAG TÖRLÉSE -->
-
                   <form
                     class="inline"
                     method="post"
                     action="/member/{{ m.id }}/delete"
                     onsubmit="return confirm('Biztosan törlöd ezt a tagot?')"
                   >
+
+                    <input
+                      type="hidden"
+                      name="month"
+                      value="{{ selected_month }}"
+                    >
 
                     <button
                       class="icon delete"
@@ -343,12 +419,15 @@
 
                   {% endif %}
 
+
                 </td>
 
               </tr>
 
 
+
               {% else %}
+
 
               <tr>
 
@@ -356,10 +435,13 @@
                   colspan="7"
                   class="empty"
                 >
+
                   Még nincs felvitt tag.
+
                 </td>
 
               </tr>
+
 
               {% endfor %}
 
@@ -373,7 +455,7 @@
 
 
 
-      <!-- DISCORDON VAN, DE NINCS A NÉVSORBAN -->
+      <!-- DISCORD -->
 
       {% if logged_in %}
 
@@ -423,6 +505,7 @@
 
       {% endif %}
 
+
     </section>
 
   </main>
@@ -456,12 +539,15 @@
     <div id="detailContent">
 
       <p class="muted">
+
         Válassz egy tagot a listából.
+
       </p>
 
     </div>
 
   </aside>
+
 
 </div>
 
@@ -469,9 +555,8 @@
 
 {% if logged_in %}
 
-<!-- =====================================================
-     ÚJ TAG HOZZÁADÁSA
-===================================================== -->
+
+<!-- ÚJ TAG -->
 
 <div
   class="modal"
@@ -479,6 +564,7 @@
 >
 
   <div class="modal-card">
+
 
     <button
       class="close"
@@ -498,6 +584,13 @@
       method="post"
       action="/member/add"
     >
+
+      <input
+        type="hidden"
+        name="month"
+        value="{{ selected_month }}"
+      >
+
 
       <label>
         Név
@@ -519,15 +612,15 @@
       >
 
 
-      <!-- FIZETÉSI STÁTUSZ -->
-
       <label>
         Fizetési státusz
       </label>
 
+
       <select
         name="payment_status"
         id="addPaymentStatus"
+        onchange="updateAddPaymentStatus()"
       >
 
         <option value="0">
@@ -539,7 +632,7 @@
         </option>
 
         <option value="2">
-          🔵 Mentesség
+          🟡 Mentesség
         </option>
 
       </select>
@@ -571,9 +664,7 @@
 
 
 
-<!-- =====================================================
-     TAG SZERKESZTÉSE
-===================================================== -->
+<!-- TAG SZERKESZTÉSE -->
 
 <div
   class="modal"
@@ -581,6 +672,7 @@
 >
 
   <div class="modal-card">
+
 
     <button
       class="close"
@@ -600,6 +692,14 @@
       method="post"
       id="editForm"
     >
+
+      <input
+        type="hidden"
+        name="month"
+        id="editMonth"
+        value="{{ selected_month }}"
+      >
+
 
       <label>
         Név
@@ -623,15 +723,15 @@
       >
 
 
-      <!-- FIZETÉSI STÁTUSZ -->
-
       <label>
         Fizetési státusz
       </label>
 
+
       <select
         name="payment_status"
         id="editPaymentStatus"
+        onchange="updateEditPaymentStatus()"
       >
 
         <option value="0">
@@ -643,7 +743,7 @@
         </option>
 
         <option value="2">
-          🔵 Mentesség
+          🟡 Mentesség
         </option>
 
       </select>
@@ -673,13 +773,189 @@
 
 </div>
 
+
 {% endif %}
 
 
 
 <script>
 
-const loggedIn = {{ 'true' if logged_in else 'false' }};
+
+const loggedIn =
+  {{ 'true' if logged_in else 'false' }};
+
+
+const selectedMonth =
+  "{{ selected_month }}";
+
+
+/* =====================================================
+   HÓNAP VÁLTÁS
+===================================================== */
+
+function changeMonth(offset) {
+
+  const parts =
+    selectedMonth.split("-");
+
+
+  let year =
+    Number(parts[0]);
+
+
+  let month =
+    Number(parts[1]);
+
+
+  month += offset;
+
+
+  if (month < 1) {
+
+    month = 12;
+
+    year--;
+
+  }
+
+
+  if (month > 12) {
+
+    month = 1;
+
+    year++;
+
+  }
+
+
+  const newMonth =
+    year +
+    "-" +
+    String(month).padStart(2, "0");
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  params.set(
+    "month",
+    newMonth
+  );
+
+
+  window.location.href =
+    "/?" +
+    params.toString();
+
+}
+
+
+function goCurrentMonth() {
+
+  const now =
+    new Date();
+
+
+  const currentMonth =
+    now.getFullYear() +
+    "-" +
+    String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  params.set(
+    "month",
+    currentMonth
+  );
+
+
+  window.location.href =
+    "/?" +
+    params.toString();
+
+}
+
+
+
+/* =====================================================
+   FIZETÉSI STÁTUSZ
+===================================================== */
+
+function updateAddPaymentStatus() {
+
+  const status =
+    Number(
+      document
+        .getElementById("addPaymentStatus")
+        .value
+    );
+
+
+  const date =
+    document.getElementById(
+      "addPaymentDate"
+    );
+
+
+  if (status === 2) {
+
+    date.value = "";
+
+    date.disabled = true;
+
+  }
+
+  else {
+
+    date.disabled = false;
+
+  }
+
+}
+
+
+function updateEditPaymentStatus() {
+
+  const status =
+    Number(
+      document
+        .getElementById("editPaymentStatus")
+        .value
+    );
+
+
+  const date =
+    document.getElementById(
+      "editPaymentDate"
+    );
+
+
+  if (status === 2) {
+
+    date.value = "";
+
+    date.disabled = true;
+
+  }
+
+  else {
+
+    date.disabled = false;
+
+  }
+
+}
+
 
 
 /* =====================================================
@@ -690,19 +966,34 @@ function openAdd() {
 
   if (!loggedIn) {
 
-    window.location.href = "/login";
+    window.location.href =
+      "/login";
 
     return;
 
   }
 
-  document
-    .getElementById("addPaymentStatus")
-    .value = "0";
+
+  const dateInput =
+    document.getElementById(
+      "addPaymentDate"
+    );
+
 
   document
-    .getElementById("addPaymentDate")
-    .value = "";
+    .getElementById(
+      "addPaymentStatus"
+    )
+    .value = "0";
+
+
+  dateInput.disabled =
+    false;
+
+
+  dateInput.value =
+    "";
+
 
   document
     .getElementById("addModal")
@@ -713,14 +1004,9 @@ function openAdd() {
 
 function closeAdd() {
 
-  const modal =
-    document.getElementById("addModal");
-
-  if (modal) {
-
-    modal.classList.remove("show");
-
-  }
+  document
+    .getElementById("addModal")
+    .classList.remove("show");
 
 }
 
@@ -734,26 +1020,33 @@ async function editMember(id) {
 
   if (!loggedIn) {
 
-    window.location.href = "/login";
+    window.location.href =
+      "/login";
 
     return;
 
   }
 
+
   try {
 
     const response =
-      await fetch("/member/" + id);
+      await fetch(
+        "/member/" +
+        id +
+        "?month=" +
+        encodeURIComponent(
+          selectedMonth
+        )
+      );
+
 
     if (!response.ok) {
 
-      alert(
-        "Nem sikerült lekérni a tag adatait."
-      );
-
-      return;
+      throw new Error();
 
     }
+
 
     const m =
       await response.json();
@@ -761,36 +1054,472 @@ async function editMember(id) {
 
     document
       .getElementById("editName")
-      .value = m.name;
+      .value =
+        m.name;
 
 
     document
-      .getElementById("editCharacterId")
-      .value = m.character_id;
+      .getElementById(
+        "editCharacterId"
+      )
+      .value =
+        m.character_id;
 
 
     document
-      .getElementById("editPaymentStatus")
-      .value = String(
-        Number(m.payment_status)
-      );
+      .getElementById(
+        "editPaymentStatus"
+      )
+      .value =
+        m.payment_status;
 
 
     document
-      .getElementById("editPaymentDate")
+      .getElementById(
+        "editPaymentDate"
+      )
       .value =
         m.payment_date || "";
 
 
     document
+      .getElementById(
+        "editMonth"
+      )
+      .value =
+        selectedMonth;
+
+
+    updateEditPaymentStatus();
+
+
+    document
       .getElementById("editForm")
       .action =
-        "/member/" + id + "/edit";
+        "/member/" +
+        id +
+        "/edit";
 
 
     document
       .getElementById("editModal")
       .classList.add("show");
+
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Nem sikerült betölteni a tag adatait."
+    );
+
+  }
+
+}
+
+
+function closeEdit() {
+
+  document
+    .getElementById("editModal")
+    .classList.remove("show");
+
+}
+
+
+
+/* =====================================================
+   RÉSZLETEK
+===================================================== */
+
+function closeDetail() {
+
+  document
+    .getElementById("details")
+    .classList.remove("open");
+
+}
+
+
+async function showMember(id) {
+
+  try {
+
+    const response =
+      await fetch(
+        "/member/" +
+        id +
+        "?month=" +
+        encodeURIComponent(
+          selectedMonth
+        )
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error();
+
+    }
+
+
+    const m =
+      await response.json();
+
+
+    document
+      .getElementById("details")
+      .classList.add("open");
+
+
+    let paymentText;
+
+
+    if (Number(m.payment_status) === 2) {
+
+      paymentText =
+        "🟡 Mentesség";
+
+    }
+
+    else if (
+      Number(m.payment_status) === 1 &&
+      m.payment_date &&
+      m.payment_date.startsWith(selectedMonth)
+    ) {
+
+      paymentText =
+        "🟢 Fizetve";
+
+    }
+
+    else {
+
+      paymentText =
+        "🔴 Nem fizetve";
+
+    }
+
+
+    let logs =
+      m.logs.map(x => `
+
+        <div class="log">
+
+          <div class="log-top">
+
+            <b class="points">
+
+              +${x.points} pont
+
+            </b>
+
+            ${
+              m.logged_in
+                ? `
+
+                <form
+                  method="post"
+                  action="/penalty/${x.id}/delete"
+                  class="inline"
+                  onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
+                >
+
+                  <button
+                    type="submit"
+                    class="penalty-delete"
+                  >
+                    🗑
+                  </button>
+
+                </form>
+
+                `
+                : ""
+            }
+
+          </div>
+
+
+          <span>
+            ${x.reason}
+          </span>
+
+
+          <small>
+
+            ${x.created_at.replace(
+              "T",
+              " "
+            )}
+
+          </small>
+
+        </div>
+
+      `).join("");
+
+
+    if (!logs) {
+
+      logs =
+        '<p class="muted">Még nincs hibapont.</p>';
+
+    }
+
+
+    let editorContent = "";
+
+
+    if (m.logged_in) {
+
+      editorContent = `
+
+        <div class="box">
+
+          <h3>
+            Hibapont hozzáadása
+          </h3>
+
+
+          <form
+            method="post"
+            action="/member/${m.id}/penalty"
+          >
+
+            <input
+              type="number"
+              name="points"
+              value="1"
+              min="1"
+              required
+            >
+
+
+            <textarea
+              name="reason"
+              placeholder="Indoklás / megjegyzés..."
+              required
+            ></textarea>
+
+
+            <button
+              class="primary full"
+              type="submit"
+            >
+              ＋ Hozzáadás
+            </button>
+
+          </form>
+
+        </div>
+
+
+        <div class="box">
+
+          <h3>
+            Discord kapcsolat szerkesztése
+          </h3>
+
+
+          <form
+            method="post"
+            action="/member/${m.id}/discord"
+          >
+
+            <input
+              name="discord_username"
+              placeholder="Discord név"
+              value="${m.discord_username || ""}"
+            >
+
+
+            <input
+              name="discord_user_id"
+              placeholder="Discord ID"
+              value="${m.discord_user_id || ""}"
+            >
+
+
+            <button
+              class="secondary full"
+              type="submit"
+            >
+              Discord mentése
+            </button>
+
+          </form>
+
+        </div>
+
+      `;
+
+    }
+
+
+    document
+      .getElementById("detailContent")
+      .innerHTML = `
+
+        <div class="profile">
+
+          <div class="avatar">
+
+            ${m.name
+              .charAt(0)
+              .toUpperCase()
+            }
+
+          </div>
+
+
+          <h2>
+            ${m.name}
+          </h2>
+
+
+          <p>
+
+            Karakter ID:
+
+            <b>
+              ${m.character_id}
+            </b>
+
+          </p>
+
+        </div>
+
+
+
+        <div class="box">
+
+          <h3>
+            Fizetési státusz
+          </h3>
+
+
+          <p>
+
+            ${paymentText}
+
+          </p>
+
+
+          <p>
+
+            Vizsgált hónap:
+
+            <b>
+              ${selectedMonth}
+            </b>
+
+          </p>
+
+
+          <p>
+
+            Fizetés dátuma:
+
+            <b>
+
+              ${
+                m.payment_date ||
+                "Nincs megadva"
+              }
+
+            </b>
+
+          </p>
+
+        </div>
+
+
+
+        <div class="box">
+
+          <h3>
+            Hibapont összesen
+          </h3>
+
+
+          <div class="bigpoints">
+
+            ${m.total_points}
+
+            <small>
+              pont
+            </small>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="box">
+
+          <h3>
+            Discord profil
+          </h3>
+
+
+          ${
+            m.discord_username
+
+              ? `
+
+                <p>
+
+                  🟢 👤
+                  <b>${m.discord_username}</b>
+
+                </p>
+
+
+                <small>
+
+                  Discord ID:
+                  ${m.discord_user_id || "-"}
+
+                </small>
+
+              `
+
+              : `
+
+                <p>
+                  🔴 Nincs összekapcsolva
+                </p>
+
+              `
+          }
+
+        </div>
+
+
+        ${editorContent}
+
+
+
+        <div
+          class="box"
+          id="logs"
+        >
+
+          <h3>
+            Hibapont napló
+          </h3>
+
+          ${logs}
+
+        </div>
+
+      `;
+
 
   }
 
@@ -807,44 +1536,17 @@ async function editMember(id) {
 }
 
 
-function closeEdit() {
-
-  const modal =
-    document.getElementById("editModal");
-
-  if (modal) {
-
-    modal.classList.remove("show");
-
-  }
-
-}
-
-
 
 /* =====================================================
-   RÉSZLETEK BEZÁRÁSA
-===================================================== */
-
-function closeDetail() {
-
-  document
-    .getElementById("details")
-    .classList.remove("open");
-
-}
-
-
-
-/* =====================================================
-   DISCORD SZINKRONIZÁLÁS
+   DISCORD SZINKRON
 ===================================================== */
 
 async function syncDiscord() {
 
   if (!loggedIn) {
 
-    window.location.href = "/login";
+    window.location.href =
+      "/login";
 
     return;
 
@@ -867,10 +1569,6 @@ async function syncDiscord() {
 
   button.innerHTML =
     "⏳ Szinkronizálás...";
-
-
-  result.innerHTML =
-    '<p class="muted">Discord tagok lekérése folyamatban...</p>';
 
 
   try {
@@ -906,20 +1604,21 @@ async function syncDiscord() {
           ✅ Discord szinkronizálás kész
         </b>
 
+
         <p>
 
           Sikeresen összekapcsolva:
-          <b>${data.linked ? data.linked.length : 0}</b>
+          <b>${data.matched || 0}</b>
 
           <br>
 
-          Nem található a Discordon:
+          Nem található:
           <b>${data.not_found ? data.not_found.length : 0}</b>
 
           <br>
 
           Discordon van, de nincs a Névsorban:
-          <b>${data.discord_only ? data.discord_only.length : 0}</b>
+          <b>${data.unmatched || 0}</b>
 
         </p>
 
@@ -932,19 +1631,14 @@ async function syncDiscord() {
 
 
     setTimeout(
-      () => {
-
-        window.location.reload();
-
-      },
+      () => window.location.reload(),
       1500
     );
+
 
   }
 
   catch (error) {
-
-    console.error(error);
 
     result.innerHTML = `
 
@@ -990,25 +1684,12 @@ async function loadUnmatchedDiscord() {
   }
 
 
-  container.innerHTML =
-    '<p class="muted">Lista betöltése...</p>';
-
-
   try {
 
     const response =
       await fetch(
         "/discord/unmatched"
       );
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Nem sikerült lekérni a Discord tagokat."
-      );
-
-    }
 
 
     const data =
@@ -1095,22 +1776,12 @@ async function loadUnmatchedDiscord() {
 
       `).join("");
 
+
   }
 
   catch (error) {
 
     console.error(error);
-
-
-    container.innerHTML = `
-
-      <p class="sync-error">
-
-        ❌ ${error.message}
-
-      </p>
-
-    `;
 
   }
 
@@ -1119,452 +1790,7 @@ async function loadUnmatchedDiscord() {
 
 
 /* =====================================================
-   TAG ADATAINAK MEGNYITÁSA
-===================================================== */
-
-async function showMember(id) {
-
-  try {
-
-    const response =
-      await fetch(
-        "/member/" + id
-      );
-
-
-    if (!response.ok) {
-
-      alert(
-        "Nem sikerült lekérni a tag adatait."
-      );
-
-      return;
-
-    }
-
-
-    const m =
-      await response.json();
-
-
-    document
-      .getElementById("details")
-      .classList.add("open");
-
-
-    let logs;
-
-
-    if (m.logged_in) {
-
-      logs = m.logs.map(x => `
-
-        <div class="log">
-
-          <div class="log-top">
-
-            <b class="points">
-
-              +${x.points} pont
-
-            </b>
-
-
-            <form
-              method="post"
-              action="/penalty/${x.id}/delete"
-              class="inline"
-              onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
-            >
-
-              <button
-                type="submit"
-                class="penalty-delete"
-                title="Hibapont törlése"
-              >
-                🗑
-              </button>
-
-            </form>
-
-          </div>
-
-
-          <span>
-
-            ${x.reason}
-
-          </span>
-
-
-          <small>
-
-            ${x.created_at.replace(
-              "T",
-              " "
-            )}
-
-          </small>
-
-        </div>
-
-      `).join("");
-
-    }
-
-    else {
-
-      logs = m.logs.map(x => `
-
-        <div class="log">
-
-          <div class="log-top">
-
-            <b class="points">
-
-              +${x.points} pont
-
-            </b>
-
-          </div>
-
-
-          <span>
-
-            ${x.reason}
-
-          </span>
-
-
-          <small>
-
-            ${x.created_at.replace(
-              "T",
-              " "
-            )}
-
-          </small>
-
-        </div>
-
-      `).join("");
-
-    }
-
-
-    if (!logs) {
-
-      logs =
-        '<p class="muted">Még nincs hibapont.</p>';
-
-    }
-
-
-    let editorContent = "";
-
-
-    if (m.logged_in) {
-
-      editorContent = `
-
-      <div class="box">
-
-        <h3>
-          Hibapont hozzáadása
-        </h3>
-
-
-        <form
-          method="post"
-          action="/member/${m.id}/penalty"
-        >
-
-          <input
-            type="number"
-            name="points"
-            value="1"
-            min="1"
-            required
-          >
-
-
-          <textarea
-            name="reason"
-            placeholder="Indoklás / megjegyzés..."
-            required
-          ></textarea>
-
-
-          <button
-            class="primary full"
-            type="submit"
-          >
-            ＋ Hozzáadás
-          </button>
-
-        </form>
-
-      </div>
-
-
-      <div
-        class="box"
-        id="member-discord-edit"
-      >
-
-        <h3>
-          Discord kapcsolat szerkesztése
-        </h3>
-
-
-        <form
-          method="post"
-          action="/member/${m.id}/discord"
-        >
-
-          <input
-            name="discord_username"
-            placeholder="Discord név"
-            value="${m.discord_username || ""}"
-          >
-
-
-          <input
-            name="discord_user_id"
-            placeholder="Discord ID"
-            value="${m.discord_user_id || ""}"
-          >
-
-
-          <button
-            class="secondary full"
-            type="submit"
-          >
-            Discord mentése
-          </button>
-
-        </form>
-
-      </div>
-
-      `;
-
-    }
-
-
-    let paymentStatusText;
-
-    if (Number(m.payment_status) === 1) {
-
-      paymentStatusText =
-        "🟢 Fizetve";
-
-    }
-
-    else if (Number(m.payment_status) === 2) {
-
-      paymentStatusText =
-        "🔵 Mentesség";
-
-    }
-
-    else {
-
-      paymentStatusText =
-        "🔴 Nem fizetve";
-
-    }
-
-
-    document
-      .getElementById("detailContent")
-      .innerHTML = `
-
-      <div class="profile">
-
-        <div class="avatar">
-
-          ${m.name
-            .charAt(0)
-            .toUpperCase()
-          }
-
-        </div>
-
-
-        <h2>
-          ${m.name}
-        </h2>
-
-
-        <p>
-
-          Karakter ID:
-
-          <b>
-            ${m.character_id}
-          </b>
-
-        </p>
-
-      </div>
-
-
-
-      <!-- FIZETÉSI STÁTUSZ -->
-
-      <div class="box">
-
-        <h3>
-          Fizetési státusz
-        </h3>
-
-
-        <p>
-          ${paymentStatusText}
-        </p>
-
-
-        <p>
-
-          Fizetés dátuma:
-
-          <b>
-
-            ${
-              Number(m.payment_status) === 2
-                ? "Nem szükséges"
-                : (
-                    m.payment_date ||
-                    "Nincs megadva"
-                  )
-            }
-
-          </b>
-
-        </p>
-
-      </div>
-
-
-
-      <!-- HIBAPONT -->
-
-      <div class="box">
-
-        <h3>
-          Hibapont összesen
-        </h3>
-
-
-        <div class="bigpoints">
-
-          ${m.total_points}
-
-          <small>
-            pont
-          </small>
-
-        </div>
-
-      </div>
-
-
-
-      <!-- DISCORD PROFIL -->
-
-      <div
-        class="box"
-        id="member-discord"
-      >
-
-        <h3>
-          Discord profil
-        </h3>
-
-
-        ${
-          m.discord_username
-
-            ? `
-
-              <p>
-
-                🟢 👤
-                <b>${m.discord_username}</b>
-
-              </p>
-
-              ${
-                m.discord_user_id
-
-                  ? `
-
-                    <small>
-
-                      Discord ID:
-                      ${m.discord_user_id}
-
-                    </small>
-
-                  `
-
-                  : ""
-              }
-
-            `
-
-            : `
-
-              <p>
-                🔴 Nincs összekapcsolva
-              </p>
-
-            `
-        }
-
-      </div>
-
-
-      ${editorContent}
-
-
-      <!-- HIBAPONT NAPLÓ -->
-
-      <div
-        class="box"
-        id="logs"
-      >
-
-        <h3>
-          Hibapont napló
-        </h3>
-
-
-        ${logs}
-
-      </div>
-
-    `;
-
-  }
-
-  catch (error) {
-
-    console.error(error);
-
-    alert(
-      "Hiba történt a tag adatainak betöltésekor."
-    );
-
-  }
-
-}
-
-
-
-/* =====================================================
-   OLDAL BETÖLTÉSEKOR DISCORD LISTA
+   OLDAL BETÖLTÉS
 ===================================================== */
 
 if (loggedIn) {
@@ -1573,7 +1799,10 @@ if (loggedIn) {
 
 }
 
+
 </script>
 
+
 </body>
+
 </html>
