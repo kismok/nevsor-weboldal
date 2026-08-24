@@ -25,23 +25,35 @@ from flask import (
 app = Flask(__name__)
 
 
-# Belmo környezetben az /app írásvédett.
-DB_PATH = os.environ.get("DATABASE_PATH", "/tmp/nevsor.db")
-
-
 # =========================================================
 # ADATBÁZIS
 # =========================================================
 
+# A hosztolt környezetben az /app írásvédett lehet,
+# ezért az adatbázis alapértelmezés szerint /tmp-ben van.
+DB_PATH = os.environ.get(
+    "DATABASE_PATH",
+    "/tmp/nevsor.db"
+)
+
+
 def get_connection():
+
     conn = sqlite3.connect(DB_PATH)
+
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+
+    conn.execute(
+        "PRAGMA foreign_keys = ON"
+    )
+
     return conn
 
 
 def db():
+
     if "db" not in g:
+
         g.db = get_connection()
 
     return g.db
@@ -53,6 +65,7 @@ def close_db(_error=None):
     conn = g.pop("db", None)
 
     if conn:
+
         conn.close()
 
 
@@ -76,6 +89,7 @@ def init_db():
         points INTEGER NOT NULL,
         reason TEXT NOT NULL,
         created_at TEXT NOT NULL,
+
         FOREIGN KEY(member_id)
             REFERENCES members(id)
             ON DELETE CASCADE
@@ -83,6 +97,7 @@ def init_db():
     """)
 
     conn.commit()
+
     conn.close()
 
 
@@ -93,7 +108,10 @@ def init_db():
 @app.route("/")
 def index():
 
-    q = request.args.get("q", "").strip()
+    q = request.args.get(
+        "q",
+        ""
+    ).strip()
 
     query = """
         SELECT
@@ -119,7 +137,11 @@ def index():
 
         like = f"%{q}%"
 
-        params = [like, like, like]
+        params = [
+            like,
+            like,
+            like
+        ]
 
     query += """
         GROUP BY m.id
@@ -139,10 +161,13 @@ def index():
 
 
 # =========================================================
-# ÚJ TAG
+# ÚJ TAG HOZZÁADÁSA
 # =========================================================
 
-@app.route("/member/add", methods=["POST"])
+@app.route(
+    "/member/add",
+    methods=["POST"]
+)
 def add_member():
 
     name = request.form.get(
@@ -198,7 +223,9 @@ def add_member():
 # TAG ADATAI
 # =========================================================
 
-@app.route("/member/<int:member_id>")
+@app.route(
+    "/member/<int:member_id>"
+)
 def member_detail(member_id):
 
     conn = db()
@@ -240,11 +267,14 @@ def member_detail(member_id):
 
     return jsonify({
 
-        "id": member["id"],
+        "id":
+            member["id"],
 
-        "name": member["name"],
+        "name":
+            member["name"],
 
-        "character_id": member["character_id"],
+        "character_id":
+            member["character_id"],
 
         "discord_user_id":
             member["discord_user_id"],
@@ -256,7 +286,10 @@ def member_detail(member_id):
             member["total_points"],
 
         "logs":
-            [dict(x) for x in logs]
+            [
+                dict(x)
+                for x in logs
+            ]
 
     })
 
@@ -314,6 +347,49 @@ def add_penalty(member_id):
         )
 
         db().commit()
+
+    return redirect(
+        url_for("index")
+    )
+
+
+# =========================================================
+# HIBAPONT TÖRLÉSE
+# =========================================================
+
+@app.route(
+    "/penalty/<int:penalty_id>/delete",
+    methods=["POST"]
+)
+def delete_penalty(penalty_id):
+
+    conn = db()
+
+    penalty = conn.execute(
+        """
+        SELECT member_id
+
+        FROM penalty_log
+
+        WHERE id = ?
+        """,
+        (penalty_id,)
+    ).fetchone()
+
+    if not penalty:
+
+        abort(404)
+
+    conn.execute(
+        """
+        DELETE FROM penalty_log
+
+        WHERE id = ?
+        """,
+        (penalty_id,)
+    )
+
+    conn.commit()
 
     return redirect(
         url_for("index")
@@ -383,6 +459,7 @@ def delete_member(member_id):
     db().execute(
         """
         DELETE FROM members
+
         WHERE id = ?
         """,
         (member_id,)
@@ -446,7 +523,10 @@ async def link_character(
 
     member = conn.execute(
         """
-        SELECT id, name, character_id
+        SELECT
+            id,
+            name,
+            character_id
 
         FROM members
 
@@ -470,7 +550,9 @@ async def link_character(
 
     existing = conn.execute(
         """
-        SELECT name, character_id
+        SELECT
+            name,
+            character_id
 
         FROM members
 
@@ -538,7 +620,7 @@ async def link_character(
 
 
 # =========================================================
-# BOT INDÍTÁSA KÜLÖN SZÁLBAN
+# DISCORD BOT INDÍTÁSA
 # =========================================================
 
 def run_discord_bot():
@@ -566,7 +648,6 @@ if __name__ == "__main__":
     init_db()
 
 
-    # Discord bot külön szálon indul.
     discord_thread = threading.Thread(
         target=run_discord_bot,
         daemon=True
