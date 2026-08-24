@@ -76,6 +76,37 @@
 
       </form>
 
+
+      <!-- BEJELENTKEZÉS / KIJELENTKEZÉS -->
+
+      <div class="auth-buttons">
+
+        {% if logged_in %}
+
+          <span class="logged-user">
+            🔓 Szerkesztő mód
+          </span>
+
+          <a
+            href="/logout"
+            class="secondary"
+          >
+            Kijelentkezés
+          </a>
+
+        {% else %}
+
+          <a
+            href="/login"
+            class="secondary"
+          >
+            🔒 Bejelentkezés
+          </a>
+
+        {% endif %}
+
+      </div>
+
     </header>
 
 
@@ -97,6 +128,8 @@
 
         </div>
 
+
+        {% if logged_in %}
 
         <div class="title-buttons">
 
@@ -124,16 +157,22 @@
 
         </div>
 
+        {% endif %}
+
       </div>
 
 
 
       <!-- DISCORD SZINKRON EREDMÉNY -->
 
+      {% if logged_in %}
+
       <div
         class="sync-result"
         id="syncResult"
       ></div>
+
+      {% endif %}
 
 
 
@@ -223,7 +262,7 @@
                 <td>
 
 
-                  <!-- RÉSZLETEK -->
+                  <!-- RÉSZLETEK - MINDENKI LÁTHATJA -->
 
                   <button
                     class="icon"
@@ -235,6 +274,7 @@
                   </button>
 
 
+                  {% if logged_in %}
 
                   <!-- SZERKESZTÉS -->
 
@@ -246,7 +286,6 @@
                   >
                     ✎
                   </button>
-
 
 
                   <!-- TAG TÖRLÉSE -->
@@ -267,6 +306,8 @@
                     </button>
 
                   </form>
+
+                  {% endif %}
 
 
                 </td>
@@ -305,6 +346,8 @@
 
 
       <!-- DISCORDON VAN, DE NINCS A NÉVSORBAN -->
+
+      {% if logged_in %}
 
       <div
         class="card discord-unmatched-card"
@@ -349,6 +392,8 @@
         </div>
 
       </div>
+
+      {% endif %}
 
 
     </section>
@@ -402,6 +447,8 @@
 
 
 <!-- ÚJ TAG HOZZÁADÁSA -->
+
+{% if logged_in %}
 
 <div
   class="modal"
@@ -472,12 +519,25 @@
 
 </div>
 
+{% endif %}
+
 
 
 <script>
 
 
+const loggedIn = {{ 'true' if logged_in else 'false' }};
+
+
 function openAdd() {
+
+  if (!loggedIn) {
+
+    window.location.href = "/login";
+
+    return;
+
+  }
 
   document
     .getElementById("addModal")
@@ -489,9 +549,14 @@ function openAdd() {
 
 function closeAdd() {
 
-  document
-    .getElementById("addModal")
-    .classList.remove("show");
+  const modal =
+    document.getElementById("addModal");
+
+  if (modal) {
+
+    modal.classList.remove("show");
+
+  }
 
 }
 
@@ -512,6 +577,15 @@ function closeDetail() {
 ===================================================== */
 
 async function syncDiscord() {
+
+  if (!loggedIn) {
+
+    window.location.href = "/login";
+
+    return;
+
+  }
+
 
   const button =
     document.getElementById(
@@ -570,18 +644,18 @@ async function syncDiscord() {
 
         <p>
 
-          Összes Discord tag:
-          <b>${data.total || 0}</b>
-
-          <br>
-
           Sikeresen összekapcsolva:
-          <b>${data.matched || 0}</b>
+          <b>${data.linked ? data.linked.length : 0}</b>
 
           <br>
 
-          Nem található a Névsorban:
-          <b>${data.unmatched || 0}</b>
+          Nem található a Discordon:
+          <b>${data.not_found ? data.not_found.length : 0}</b>
+
+          <br>
+
+          Discordon van, de nincs a Névsorban:
+          <b>${data.discord_only ? data.discord_only.length : 0}</b>
 
         </p>
 
@@ -590,12 +664,11 @@ async function syncDiscord() {
     `;
 
 
-    await loadUnmatchedDiscord();
-
-
     setTimeout(
       () => {
+
         window.location.reload();
+
       },
       1500
     );
@@ -636,148 +709,6 @@ async function syncDiscord() {
 
 
 /* =====================================================
-   NEM EGYEZŐ DISCORD TAGOK BETÖLTÉSE
-===================================================== */
-
-async function loadUnmatchedDiscord() {
-
-  const container =
-    document.getElementById(
-      "unmatchedDiscordList"
-    );
-
-
-  container.innerHTML =
-    '<p class="muted">Lista betöltése...</p>';
-
-
-  try {
-
-    const response =
-      await fetch(
-        "/discord/unmatched"
-      );
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Nem sikerült lekérni a Discord tagokat."
-      );
-
-    }
-
-
-    const data =
-      await response.json();
-
-
-    const members =
-      data.members || [];
-
-
-    if (!members.length) {
-
-      container.innerHTML = `
-
-        <div class="discord-all-good">
-
-          🟢 Minden Discord tag megtalálható
-          a Névsorban.
-
-        </div>
-
-      `;
-
-      return;
-
-    }
-
-
-    container.innerHTML =
-      members.map(member => `
-
-        <div class="unmatched-member">
-
-          <div class="unmatched-avatar">
-
-            ${(
-              member.display_name ||
-              member.username ||
-              "?"
-            )
-              .charAt(0)
-              .toUpperCase()
-            }
-
-          </div>
-
-
-          <div class="unmatched-info">
-
-            <b>
-
-              ${
-                member.display_name ||
-                member.username
-              }
-
-            </b>
-
-
-            <small>
-
-              @${member.username || "-"}
-
-            </small>
-
-
-            <small>
-
-              Discord ID:
-              ${member.id}
-
-            </small>
-
-          </div>
-
-
-          <div class="unmatched-status">
-
-            🔴 Nincs a Névsorban
-
-          </div>
-
-        </div>
-
-      `).join("");
-
-
-  }
-
-
-  catch (error) {
-
-    console.error(error);
-
-
-    container.innerHTML = `
-
-      <p class="sync-error">
-
-        ❌ ${error.message}
-
-      </p>
-
-    `;
-
-  }
-
-}
-
-
-
-/* =====================================================
    TAG ADATAINAK MEGNYITÁSA
 ===================================================== */
 
@@ -805,161 +736,136 @@ async function showMember(id) {
     const m = await response.json();
 
 
-
     document
       .getElementById("details")
       .classList.add("open");
 
 
-
-    /* =====================================
-       HIBAPONT NAPLÓ
-    ===================================== */
-
-    const logs = m.logs.map(x => `
-
-      <div class="log">
+    let logs;
 
 
-        <div class="log-top">
+    if (m.logged_in) {
+
+      logs = m.logs.map(x => `
+
+        <div class="log">
 
 
-          <b class="points">
-
-            +${x.points} pont
-
-          </b>
+          <div class="log-top">
 
 
+            <b class="points">
 
-          <form
-            method="post"
-            action="/penalty/${x.id}/delete"
-            class="inline"
-            onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
-          >
+              +${x.points} pont
 
-            <button
-              type="submit"
-              class="penalty-delete"
-              title="Hibapont törlése"
+            </b>
+
+
+
+            <form
+              method="post"
+              action="/penalty/${x.id}/delete"
+              class="inline"
+              onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
             >
-              🗑
-            </button>
 
-          </form>
+              <button
+                type="submit"
+                class="penalty-delete"
+                title="Hibapont törlése"
+              >
+                🗑
+              </button>
+
+            </form>
 
 
-        </div>
-
-
-
-        <span>
-
-          ${x.reason}
-
-        </span>
+          </div>
 
 
 
-        <small>
+          <span>
 
-          ${x.created_at.replace(
-            "T",
-            " "
-          )}
+            ${x.reason}
 
-        </small>
+          </span>
 
 
-      </div>
-
-    `).join("")
-
-    ||
-
-    '<p class="muted">Még nincs hibapont.</p>';
-
-
-
-
-    /* =====================================
-       JOBB OLDALI ADATLAP
-    ===================================== */
-
-    document
-      .getElementById("detailContent")
-      .innerHTML = `
-
-
-      <div class="profile">
-
-
-        <div class="avatar">
-
-          ${m.name
-            .charAt(0)
-            .toUpperCase()
-          }
-
-        </div>
-
-
-
-        <h2>
-
-          ${m.name}
-
-        </h2>
-
-
-
-        <p>
-
-          Karakter ID:
-
-          <b>
-
-            ${m.character_id}
-
-          </b>
-
-        </p>
-
-
-      </div>
-
-
-
-
-      <div class="box">
-
-
-        <h3>
-
-          Hibapont összesen
-
-        </h3>
-
-
-
-        <div class="bigpoints">
-
-          ${m.total_points}
 
           <small>
 
-            pont
+            ${x.created_at.replace(
+              "T",
+              " "
+            )}
+
+          </small>
+
+
+        </div>
+
+      `).join("");
+
+    }
+
+    else {
+
+      logs = m.logs.map(x => `
+
+        <div class="log">
+
+          <div class="log-top">
+
+            <b class="points">
+
+              +${x.points} pont
+
+            </b>
+
+          </div>
+
+
+          <span>
+
+            ${x.reason}
+
+          </span>
+
+
+          <small>
+
+            ${x.created_at.replace(
+              "T",
+              " "
+            )}
 
           </small>
 
         </div>
 
+      `).join("");
 
-      </div>
+    }
+
+
+    if (!logs) {
+
+      logs =
+        '<p class="muted">Még nincs hibapont.</p>';
+
+    }
 
 
 
+    let editorContent = "";
+
+
+    if (m.logged_in) {
+
+      editorContent = `
+
+
+      <!-- HIBAPONT HOZZÁADÁSA -->
 
       <div class="box">
 
@@ -1013,6 +919,8 @@ async function showMember(id) {
 
 
 
+
+      <!-- DISCORD -->
 
       <div
         class="box"
@@ -1079,8 +987,94 @@ async function showMember(id) {
 
       </div>
 
+      `;
+
+    }
 
 
+
+    document
+      .getElementById("detailContent")
+      .innerHTML = `
+
+
+      <!-- PROFIL -->
+
+      <div class="profile">
+
+
+        <div class="avatar">
+
+          ${m.name
+            .charAt(0)
+            .toUpperCase()
+          }
+
+        </div>
+
+
+
+        <h2>
+
+          ${m.name}
+
+        </h2>
+
+
+
+        <p>
+
+          Karakter ID:
+
+          <b>
+
+            ${m.character_id}
+
+          </b>
+
+        </p>
+
+
+      </div>
+
+
+
+
+      <!-- HIBAPONT ÖSSZESEN -->
+
+      <div class="box">
+
+
+        <h3>
+
+          Hibapont összesen
+
+        </h3>
+
+
+
+        <div class="bigpoints">
+
+          ${m.total_points}
+
+          <small>
+
+            pont
+
+          </small>
+
+        </div>
+
+
+      </div>
+
+
+      ${editorContent}
+
+
+
+
+      <!-- HIBAPONT NAPLÓ -->
 
       <div
         class="box"
@@ -1117,11 +1111,6 @@ async function showMember(id) {
   }
 
 }
-
-
-/* Az oldal megnyitásakor lekérjük az utolsó ismert listát */
-
-loadUnmatchedDiscord();
 
 
 </script>
