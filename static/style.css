@@ -1,0 +1,418 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* BAL OLDALI MENÜ */
+
+.sidebar {
+  width: 240px;
+  background: #0b1120;
+  border-right: 1px solid #263244;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: bold;
+  color: #60a5fa;
+  margin-bottom: 40px;
+}
+
+.brand span {
+  color: white;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+nav a {
+  color: #94a3b8;
+  text-decoration: none;
+  padding: 13px 15px;
+  border-radius: 8px;
+}
+
+nav a:hover,
+nav a.active {
+  background: #1e293b;
+  color: #60a5fa;
+}
+
+.version {
+  margin-top: auto;
+  color: #64748b;
+  font-size: 13px;
+  padding: 15px;
+}
+
+/* FŐ TARTALOM */
+
+main {
+  flex: 1;
+  min-width: 0;
+}
+
+header {
+  height: 70px;
+  border-bottom: 1px solid #263244;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  gap: 20px;
+  background: #111827;
+}
+
+.hamb {
+  font-size: 24px;
+  color: #94a3b8;
+}
+
+.search {
+  flex: 1;
+}
+
+.search input {
+  width: 100%;
+  max-width: 500px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: white;
+  padding: 12px 15px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.content {
+  padding: 35px;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.title-row p {
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+.card {
+  background: #182235;
+  border: 1px solid #2b3a52;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #111827;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: left;
+  padding: 15px;
+}
+
+td {
+  padding: 16px 15px;
+  border-top: 1px solid #263244;
+}
+
+tr:hover {
+  background: #1e293b;
+}
+
+.primary,
+.secondary {
+  border: none;
+  padding: 11px 18px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.primary {
+  background: #2563eb;
+  color: white;
+}
+
+.primary:hover {
+  background: #3b82f6;
+}
+
+.secondary {
+  background: #334155;
+  color: white;
+}
+
+.full {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.icon {
+  background: #263244;
+  border: none;
+  color: #94a3b8;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.icon:hover {
+  background: #334155;
+}
+
+.delete:hover {
+  background: #7f1d1d;
+  color: #f87171;
+}
+
+.edit:hover {
+  color: #60a5fa;
+}
+
+.inline {
+  display: inline;
+}
+
+.points {
+  color: #f87171;
+  font-weight: bold;
+}
+
+.zero {
+  color: #4ade80;
+}
+
+.online {
+  color: #4ade80;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.empty {
+  text-align: center;
+  color: #64748b;
+  padding: 40px;
+}
+
+/* JOBB OLDALI RÉSZLETEK */
+
+.details {
+  width: 0;
+  background: #0b1120;
+  border-left: 0 solid #263244;
+  overflow: hidden;
+  transition: 0.25s;
+}
+
+.details.open {
+  width: 400px;
+  border-left: 1px solid #263244;
+  overflow-y: auto;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #263244;
+}
+
+.detail-head button,
+.close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+#detailContent {
+  padding: 20px;
+}
+
+.profile {
+  text-align: center;
+  padding-bottom: 20px;
+}
+
+.avatar {
+  width: 70px;
+  height: 70px;
+  margin: auto;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.box {
+  background: #182235;
+  border: 1px solid #2b3a52;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.box h3 {
+  margin-top: 0;
+}
+
+.bigpoints {
+  font-size: 32px;
+  color: #f87171;
+  font-weight: bold;
+}
+
+.bigpoints small {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+input,
+textarea {
+  width: 100%;
+  background: #111827;
+  border: 1px solid #334155;
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.log {
+  border-top: 1px solid #334155;
+  padding: 12px 0;
+}
+
+.log small {
+  display: block;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+/* MODAL */
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-card {
+  position: relative;
+  width: 400px;
+  max-width: 90%;
+  background: #182235;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 25px;
+}
+
+.modal-card h2 {
+  margin-top: 0;
+}
+
+.modal-card label {
+  display: block;
+  margin: 15px 0 6px;
+  color: #94a3b8;
+}
+
+.close {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+}
+
+/* MOBIL */
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 70px;
+    padding: 15px 8px;
+  }
+
+  .brand span,
+  nav a {
+    font-size: 0;
+  }
+
+  nav a {
+    font-size: 22px;
+    text-align: center;
+  }
+
+  .version {
+    display: none;
+  }
+
+  .content {
+    padding: 20px;
+  }
+
+  .details.open {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: min(400px, 100%);
+    z-index: 10;
+  }
+
+  .title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+}
