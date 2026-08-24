@@ -26,7 +26,11 @@ from flask import (
 
 app = Flask(__name__)
 
-# Session titkosító kulcs
+
+# =========================================================
+# SESSION TITKOSÍTÓ KULCS
+# =========================================================
+
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "csereld-le-egy-hosszu-titkos-kulcsra"
@@ -55,11 +59,7 @@ def is_logged_in():
 
 def require_login():
 
-    if not is_logged_in():
-
-        return False
-
-    return True
+    return is_logged_in()
 
 
 # =========================================================
@@ -305,6 +305,68 @@ def add_member():
                 datetime.now().isoformat(
                     timespec="seconds"
                 )
+            )
+        )
+
+        db().commit()
+
+    except sqlite3.IntegrityError:
+
+        pass
+
+    return redirect(
+        url_for("index")
+    )
+
+
+# =========================================================
+# TAG SZERKESZTÉSE
+# =========================================================
+
+@app.route(
+    "/member/<int:member_id>/edit",
+    methods=["POST"]
+)
+def edit_member(member_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    name = request.form.get(
+        "name",
+        ""
+    ).strip()
+
+    character_id = request.form.get(
+        "character_id",
+        ""
+    ).strip()
+
+    if not name or not character_id:
+
+        return redirect(
+            url_for("index")
+        )
+
+    try:
+
+        db().execute(
+            """
+            UPDATE members
+
+            SET
+                name = ?,
+                character_id = ?
+
+            WHERE id = ?
+            """,
+            (
+                name,
+                character_id,
+                member_id
             )
         )
 
@@ -653,9 +715,7 @@ async def link_character(
 
         return
 
-
     conn = get_connection()
-
 
     member = conn.execute(
         """
@@ -671,7 +731,6 @@ async def link_character(
         (str(character_id),)
     ).fetchone()
 
-
     if not member:
 
         conn.close()
@@ -682,7 +741,6 @@ async def link_character(
         )
 
         return
-
 
     existing = conn.execute(
         """
@@ -697,7 +755,6 @@ async def link_character(
         (str(ctx.author.id),)
     ).fetchone()
 
-
     if existing:
 
         conn.close()
@@ -710,7 +767,6 @@ async def link_character(
         )
 
         return
-
 
     try:
 
@@ -733,14 +789,12 @@ async def link_character(
 
         conn.commit()
 
-
         await ctx.send(
             "✅ **Sikeres összekapcsolás!**\n\n"
             f"👤 Karakter: **{member['name']}**\n"
             f"🆔 Karakter ID: `{member['character_id']}`\n"
             f"💬 Discord: **{ctx.author}**"
         )
-
 
     except sqlite3.IntegrityError:
 
@@ -749,10 +803,51 @@ async def link_character(
             "már hozzá van rendelve valakihez."
         )
 
-
     finally:
 
         conn.close()
+
+
+# =========================================================
+# DISCORD NÉV EGYEZÉS
+# =========================================================
+
+def names_match(db_name, discord_member):
+
+    if not db_name:
+
+        return False
+
+    db_name = db_name.strip().lower()
+
+    possible_names = [
+
+        discord_member.name,
+
+        discord_member.display_name,
+
+        discord_member.global_name,
+
+        str(discord_member)
+
+    ]
+
+    for discord_name in possible_names:
+
+        if not discord_name:
+
+            continue
+
+        if (
+            discord_name
+            .strip()
+            .lower()
+            == db_name
+        ):
+
+            return True
+
+    return False
 
 
 # =========================================================
@@ -768,11 +863,22 @@ async def sync_discord_members():
             "error": "DISCORD_GUILD_ID nincs beállítva."
         }
 
+    try:
+
+        guild_id = int(
+            DISCORD_GUILD_ID
+        )
+
+    except ValueError:
+
+        return {
+            "success": False,
+            "error": "Hibás DISCORD_GUILD_ID."
+        }
 
     guild = bot.get_guild(
-        int(DISCORD_GUILD_ID)
+        guild_id
     )
-
 
     if not guild:
 
@@ -781,18 +887,17 @@ async def sync_discord_members():
             "error": "A Discord szerver nem található."
         }
 
-
     try:
 
         await guild.chunk()
 
-    except Exception:
+    except Exception as e:
 
-        pass
-
+        print(
+            f"Discord member chunk hiba: {e}"
+        )
 
     conn = get_connection()
-
 
     members_db = conn.execute(
         """
@@ -806,69 +911,64 @@ async def sync_discord_members():
         """
     ).fetchall()
 
-
     linked = []
 
     not_found = []
 
     used_discord_ids = set()
 
-
     for db_member in members_db:
 
         found_member = None
 
-        db_name = db_member["name"].strip().lower()
+        # Először a korábban mentett Discord ID alapján keresünk
+        if db_member["discord_user_id"]:
 
+            try:
 
-        for discord_member in guild.members:
+                found_member = guild.get_member(
+                    int(
+                        db_member[
+                            "discord_user_id"
+                        ]
+                    )
+                )
 
-            if discord_member.bot:
+            except (
+                ValueError,
+                TypeError
+            ):
 
-                continue
+                found_member = None
 
+        # Ha nincs ID alapján találat,
+        # akkor név alapján keresünk
+        if not found_member:
 
-            possible_names = [
+            for discord_member in guild.members:
 
-                discord_member.name,
-
-                discord_member.display_name,
-
-                str(discord_member)
-
-            ]
-
-
-            for discord_name in possible_names:
-
-                if not discord_name:
+                if discord_member.bot:
 
                     continue
 
-
-                if (
-                    discord_name
-                    .strip()
-                    .lower()
-                    == db_name
+                if names_match(
+                    db_member["name"],
+                    discord_member
                 ):
 
                     found_member = discord_member
 
                     break
 
-
-            if found_member:
-
-                break
-
+        # ---------------------------------------------
+        # TALÁLTUK
+        # ---------------------------------------------
 
         if found_member:
 
             used_discord_ids.add(
                 found_member.id
             )
-
 
             conn.execute(
                 """
@@ -882,11 +982,12 @@ async def sync_discord_members():
                 """,
                 (
                     str(found_member.id),
-                    str(found_member),
+
+                    found_member.display_name,
+
                     db_member["id"]
                 )
             )
-
 
             linked.append({
 
@@ -897,10 +998,13 @@ async def sync_discord_members():
                     db_member["name"],
 
                 "discord":
-                    str(found_member)
+                    found_member.display_name
 
             })
 
+        # ---------------------------------------------
+        # NEM TALÁLHATÓ
+        # ---------------------------------------------
 
         else:
 
@@ -914,14 +1018,16 @@ async def sync_discord_members():
 
             })
 
-
     conn.commit()
 
     conn.close()
 
 
-    discord_only = []
+    # =================================================
+    # DISCORDON VAN, DE NINCS A NÉVSORBAN
+    # =================================================
 
+    discord_only = []
 
     for discord_member in guild.members:
 
@@ -929,32 +1035,48 @@ async def sync_discord_members():
 
             continue
 
-
         if discord_member.id not in used_discord_ids:
 
             discord_only.append({
 
-                "discord_id":
+                "id":
                     str(discord_member.id),
 
-                "name":
-                    str(discord_member),
+                "username":
+                    discord_member.name,
 
                 "display_name":
                     discord_member.display_name
 
             })
 
-
     return {
 
         "success": True,
 
-        "linked": linked,
+        "total":
+            len(
+                [
+                    m
+                    for m in guild.members
+                    if not m.bot
+                ]
+            ),
 
-        "not_found": not_found,
+        "matched":
+            len(linked),
 
-        "discord_only": discord_only
+        "unmatched":
+            len(discord_only),
+
+        "linked":
+            linked,
+
+        "not_found":
+            not_found,
+
+        "discord_only":
+            discord_only
 
     }
 
@@ -976,7 +1098,6 @@ def discord_sync():
             "error": "Bejelentkezés szükséges."
         }), 401
 
-
     if not bot.is_ready():
 
         return jsonify({
@@ -988,12 +1109,10 @@ def discord_sync():
 
         }), 503
 
-
     future = asyncio.run_coroutine_threadsafe(
         sync_discord_members(),
         bot.loop
     )
-
 
     try:
 
@@ -1005,7 +1124,6 @@ def discord_sync():
             result
         )
 
-
     except Exception as e:
 
         return jsonify({
@@ -1015,6 +1133,135 @@ def discord_sync():
             "error": str(e)
 
         }), 500
+
+
+# =========================================================
+# API - DISCORDON VAN, DE NINCS A NÉVSORBAN
+# =========================================================
+
+@app.route(
+    "/discord/unmatched"
+)
+def discord_unmatched():
+
+    if not bot.is_ready():
+
+        return jsonify({
+            "members": []
+        })
+
+    if not DISCORD_GUILD_ID:
+
+        return jsonify({
+            "members": []
+        })
+
+    try:
+
+        guild_id = int(
+            DISCORD_GUILD_ID
+        )
+
+    except ValueError:
+
+        return jsonify({
+            "members": []
+        })
+
+    guild = bot.get_guild(
+        guild_id
+    )
+
+    if not guild:
+
+        return jsonify({
+            "members": []
+        })
+
+    conn = get_connection()
+
+    db_members = conn.execute(
+        """
+        SELECT
+            name,
+            discord_user_id
+        FROM members
+        """
+    ).fetchall()
+
+    conn.close()
+
+    used_ids = set()
+
+    for db_member in db_members:
+
+        if db_member["discord_user_id"]:
+
+            try:
+
+                used_ids.add(
+                    int(
+                        db_member[
+                            "discord_user_id"
+                        ]
+                    )
+                )
+
+            except (
+                ValueError,
+                TypeError
+            ):
+
+                pass
+
+        else:
+
+            for discord_member in guild.members:
+
+                if discord_member.bot:
+
+                    continue
+
+                if names_match(
+                    db_member["name"],
+                    discord_member
+                ):
+
+                    used_ids.add(
+                        discord_member.id
+                    )
+
+                    break
+
+    members = []
+
+    for discord_member in guild.members:
+
+        if discord_member.bot:
+
+            continue
+
+        if discord_member.id not in used_ids:
+
+            members.append({
+
+                "id":
+                    str(discord_member.id),
+
+                "username":
+                    discord_member.name,
+
+                "display_name":
+                    discord_member.display_name
+
+            })
+
+    return jsonify({
+
+        "members":
+            members
+
+    })
 
 
 # =========================================================
@@ -1031,7 +1278,6 @@ def run_discord_bot():
 
         return
 
-
     bot.run(
         DISCORD_TOKEN
     )
@@ -1045,7 +1291,6 @@ if __name__ == "__main__":
 
     init_db()
 
-
     discord_thread = threading.Thread(
         target=run_discord_bot,
         daemon=True
@@ -1053,14 +1298,12 @@ if __name__ == "__main__":
 
     discord_thread.start()
 
-
     port = int(
         os.environ.get(
             "PORT",
             "3000"
         )
     )
-
 
     app.run(
         host="0.0.0.0",
