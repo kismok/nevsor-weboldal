@@ -2,15 +2,23 @@
 <html lang="hu">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Névsor</title>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>
+    Névsor
+  </title>
 
   <link
     rel="stylesheet"
     href="{{ url_for('static', filename='style.css') }}"
   >
+
 </head>
 
 
@@ -24,7 +32,9 @@
   <aside class="sidebar">
 
     <div class="brand">
+
       ▣ <span>NÉVSOR</span>
+
     </div>
 
 
@@ -37,14 +47,20 @@
         ☷ Névsor
       </a>
 
+
       <a href="#logs">
+
         ⚠ Hibapont napló
+
       </a>
+
 
       {% if logged_in %}
 
       <a href="#discord">
+
         ◉ Discord kapcsolatok
+
       </a>
 
       {% endif %}
@@ -63,7 +79,9 @@
     <header>
 
       <div class="hamb">
+
         ☰
+
       </div>
 
 
@@ -78,6 +96,7 @@
           value="{{ selected_month }}"
         >
 
+
         <input
           name="q"
           value="{{ q }}"
@@ -91,25 +110,32 @@
 
         {% if logged_in %}
 
-          <span class="logged-user">
-            🔓 Szerkesztő mód
-          </span>
+        <span class="logged-user">
 
-          <a
-            href="/logout"
-            class="secondary"
-          >
-            Kijelentkezés
-          </a>
+          🔓 Szerkesztő mód
+
+        </span>
+
+
+        <a
+          href="/logout"
+          class="secondary"
+        >
+
+          Kijelentkezés
+
+        </a>
 
         {% else %}
 
-          <a
-            href="/login"
-            class="secondary"
-          >
-            🔒 Bejelentkezés
-          </a>
+        <a
+          href="/login"
+          class="secondary"
+        >
+
+          🔒 Bejelentkezés
+
+        </a>
 
         {% endif %}
 
@@ -127,11 +153,16 @@
         <div>
 
           <h1>
+
             ♧ NÉVSOR
+
           </h1>
 
+
           <p>
+
             Tagok kezelése, hibapontok és havi fizetések
+
           </p>
 
         </div>
@@ -148,7 +179,9 @@
             id="discordSyncButton"
             onclick="syncDiscord()"
           >
+
             🔄 Discord szinkronizálás
+
           </button>
 
 
@@ -157,7 +190,9 @@
             type="button"
             onclick="openAdd()"
           >
+
             ＋ Új tag hozzáadása
+
           </button>
 
         </div>
@@ -172,24 +207,32 @@
 
       <div class="month-selector">
 
+
         <button
           class="icon"
           type="button"
           onclick="changeMonth(-1)"
           title="Előző hónap"
         >
+
           ←
+
         </button>
 
 
         <div class="selected-month">
 
           <span>
+
             📅
+
           </span>
 
+
           <b id="monthTitle">
+
             {{ selected_month }}
+
           </b>
 
         </div>
@@ -201,7 +244,9 @@
           onclick="changeMonth(1)"
           title="Következő hónap"
         >
+
           →
+
         </button>
 
 
@@ -210,7 +255,9 @@
           type="button"
           onclick="goCurrentMonth()"
         >
+
           Mai hónap
+
         </button>
 
       </div>
@@ -259,7 +306,6 @@
             </thead>
 
 
-
             <tbody>
 
               {% for m in members %}
@@ -270,39 +316,44 @@
                 <td>
 
                   <b>
+
                     {{ m.name }}
+
                   </b>
 
                 </td>
 
 
-
                 <td>
-                  {{ m.character_id }}
-                </td>
 
+                  {{ m.character_id }}
+
+                </td>
 
 
                 <td>
 
                   {% if m.discord_username %}
 
-                    <span class="online">
-                      ●
-                    </span>
+                  <span class="online">
 
-                    {{ m.discord_username }}
+                    ●
+
+                  </span>
+
+                  {{ m.discord_username }}
 
                   {% else %}
 
-                    <span class="muted">
-                      Nincs hozzárendelve
-                    </span>
+                  <span class="muted">
+
+                    Nincs hozzárendelve
+
+                  </span>
 
                   {% endif %}
 
                 </td>
-
 
 
                 <!-- FIZETÉSI STÁTUSZ -->
@@ -311,26 +362,33 @@
 
                   {% if m.payment_status == 2 %}
 
-                    <span class="payment-exempt">
-                      🟡 Mentesség
-                    </span>
+                  <span class="payment-exempt">
+
+                    🟡 Mentesség
+
+                  </span>
+
 
                   {% elif m.payment_status == 1 and m.payment_date and m.payment_date.startswith(selected_month) %}
 
-                    <span class="payment-paid">
-                      🟢 Fizetve
-                    </span>
+                  <span class="payment-paid">
+
+                    🟢 Fizetve
+
+                  </span>
+
 
                   {% else %}
 
-                    <span class="payment-unpaid">
-                      🔴 Nem fizetve
-                    </span>
+                  <span class="payment-unpaid">
+
+                    🔴 Nem fizetve
+
+                  </span>
 
                   {% endif %}
 
                 </td>
-
 
 
                 <!-- FIZETÉS DÁTUMA -->
@@ -339,24 +397,28 @@
 
                   {% if m.payment_status == 2 %}
 
-                    <span class="muted">
-                      Mentesség
-                    </span>
+                  <span class="muted">
+
+                    Mentesség
+
+                  </span>
+
 
                   {% elif m.payment_date and m.payment_date.startswith(selected_month) %}
 
-                    {{ m.payment_date }}
+                  {{ m.payment_date }}
 
                   {% else %}
 
-                    <span class="muted">
-                      Erre a hónapra nincs fizetés
-                    </span>
+                  <span class="muted">
+
+                    Erre a hónapra nincs fizetés
+
+                  </span>
 
                   {% endif %}
 
                 </td>
-
 
 
                 <td
@@ -368,7 +430,6 @@
                 </td>
 
 
-
                 <td>
 
 
@@ -378,11 +439,14 @@
                     onclick="showMember({{ m.id }})"
                     title="Részletek"
                   >
+
                     ◉
+
                   </button>
 
 
                   {% if logged_in %}
+
 
                   <button
                     class="icon edit"
@@ -390,7 +454,9 @@
                     onclick="editMember({{ m.id }})"
                     title="Szerkesztés"
                   >
+
                     ✎
+
                   </button>
 
 
@@ -407,23 +473,24 @@
                       value="{{ selected_month }}"
                     >
 
+
                     <button
                       class="icon delete"
                       type="submit"
                       title="Tag törlése"
                     >
+
                       🗑
+
                     </button>
 
                   </form>
 
                   {% endif %}
 
-
                 </td>
 
               </tr>
-
 
 
               {% else %}
@@ -469,11 +536,16 @@
           <div>
 
             <h2>
+
               🔴 Discordon található, de nincs a Névsorban
+
             </h2>
 
+
             <p>
+
               Ezeket a Discord tagokat nem sikerült automatikusan összekapcsolni.
+
             </p>
 
           </div>
@@ -484,7 +556,9 @@
             type="button"
             onclick="loadUnmatchedDiscord()"
           >
+
             🔄 Lista frissítése
+
           </button>
 
         </div>
@@ -496,7 +570,9 @@
         >
 
           <p class="muted">
+
             Lista betöltése...
+
           </p>
 
         </div>
@@ -522,7 +598,9 @@
     <div class="detail-head">
 
       <b>
+
         Tag részletei
+
       </b>
 
 
@@ -530,7 +608,9 @@
         type="button"
         onclick="closeDetail()"
       >
+
         ×
+
       </button>
 
     </div>
@@ -571,12 +651,16 @@
       type="button"
       onclick="closeAdd()"
     >
+
       ×
+
     </button>
 
 
     <h2>
+
       Új tag hozzáadása
+
     </h2>
 
 
@@ -593,7 +677,9 @@
 
 
       <label>
+
         Név
+
       </label>
 
       <input
@@ -603,7 +689,9 @@
 
 
       <label>
+
         Karakter ID
+
       </label>
 
       <input
@@ -613,7 +701,9 @@
 
 
       <label>
+
         Fizetési státusz
+
       </label>
 
 
@@ -624,23 +714,32 @@
       >
 
         <option value="0">
+
           🔴 Nem fizetve
+
         </option>
 
         <option value="1">
+
           🟢 Fizetve
+
         </option>
 
         <option value="2">
+
           🟡 Mentesség
+
         </option>
 
       </select>
 
 
       <label>
+
         Fizetés dátuma
+
       </label>
+
 
       <input
         type="date"
@@ -653,7 +752,9 @@
         class="primary full"
         type="submit"
       >
+
         Hozzáadás
+
       </button>
 
     </form>
@@ -679,12 +780,16 @@
       type="button"
       onclick="closeEdit()"
     >
+
       ×
+
     </button>
 
 
     <h2>
+
       Tag szerkesztése
+
     </h2>
 
 
@@ -702,7 +807,9 @@
 
 
       <label>
+
         Név
+
       </label>
 
       <input
@@ -713,7 +820,9 @@
 
 
       <label>
+
         Karakter ID
+
       </label>
 
       <input
@@ -724,7 +833,9 @@
 
 
       <label>
+
         Fizetési státusz
+
       </label>
 
 
@@ -735,23 +846,32 @@
       >
 
         <option value="0">
+
           🔴 Nem fizetve
+
         </option>
 
         <option value="1">
+
           🟢 Fizetve
+
         </option>
 
         <option value="2">
+
           🟡 Mentesség
+
         </option>
 
       </select>
 
 
       <label>
+
         Fizetés dátuma
+
       </label>
+
 
       <input
         type="date"
@@ -764,7 +884,9 @@
         class="primary full"
         type="submit"
       >
+
         💾 Mentés
+
       </button>
 
     </form>
@@ -787,6 +909,7 @@ const loggedIn =
 
 const selectedMonth =
   "{{ selected_month }}";
+
 
 
 /* =====================================================
@@ -853,6 +976,7 @@ function changeMonth(offset) {
 }
 
 
+
 function goCurrentMonth() {
 
   const now =
@@ -896,7 +1020,9 @@ function updateAddPaymentStatus() {
   const status =
     Number(
       document
-        .getElementById("addPaymentStatus")
+        .getElementById(
+          "addPaymentStatus"
+        )
         .value
     );
 
@@ -924,12 +1050,15 @@ function updateAddPaymentStatus() {
 }
 
 
+
 function updateEditPaymentStatus() {
 
   const status =
     Number(
       document
-        .getElementById("editPaymentStatus")
+        .getElementById(
+          "editPaymentStatus"
+        )
         .value
     );
 
@@ -974,17 +1103,18 @@ function openAdd() {
   }
 
 
-  const dateInput =
-    document.getElementById(
-      "addPaymentDate"
-    );
-
-
   document
     .getElementById(
       "addPaymentStatus"
     )
-    .value = "0";
+    .value =
+      "0";
+
+
+  const dateInput =
+    document.getElementById(
+      "addPaymentDate"
+    );
 
 
   dateInput.disabled =
@@ -996,17 +1126,26 @@ function openAdd() {
 
 
   document
-    .getElementById("addModal")
-    .classList.add("show");
+    .getElementById(
+      "addModal"
+    )
+    .classList.add(
+      "show"
+    );
 
 }
+
 
 
 function closeAdd() {
 
   document
-    .getElementById("addModal")
-    .classList.remove("show");
+    .getElementById(
+      "addModal"
+    )
+    .classList.remove(
+      "show"
+    );
 
 }
 
@@ -1043,7 +1182,9 @@ async function editMember(id) {
 
     if (!response.ok) {
 
-      throw new Error();
+      throw new Error(
+        "Nem sikerült lekérni a tag adatait."
+      );
 
     }
 
@@ -1053,7 +1194,9 @@ async function editMember(id) {
 
 
     document
-      .getElementById("editName")
+      .getElementById(
+        "editName"
+      )
       .value =
         m.name;
 
@@ -1071,7 +1214,9 @@ async function editMember(id) {
         "editPaymentStatus"
       )
       .value =
-        m.payment_status;
+        String(
+          m.payment_status
+        );
 
 
     document
@@ -1079,7 +1224,8 @@ async function editMember(id) {
         "editPaymentDate"
       )
       .value =
-        m.payment_date || "";
+        m.payment_date ||
+        "";
 
 
     document
@@ -1094,7 +1240,9 @@ async function editMember(id) {
 
 
     document
-      .getElementById("editForm")
+      .getElementById(
+        "editForm"
+      )
       .action =
         "/member/" +
         id +
@@ -1102,9 +1250,12 @@ async function editMember(id) {
 
 
     document
-      .getElementById("editModal")
-      .classList.add("show");
-
+      .getElementById(
+        "editModal"
+      )
+      .classList.add(
+        "show"
+      );
 
   }
 
@@ -1113,6 +1264,7 @@ async function editMember(id) {
     console.error(error);
 
     alert(
+      error.message ||
       "Nem sikerült betölteni a tag adatait."
     );
 
@@ -1121,11 +1273,16 @@ async function editMember(id) {
 }
 
 
+
 function closeEdit() {
 
   document
-    .getElementById("editModal")
-    .classList.remove("show");
+    .getElementById(
+      "editModal"
+    )
+    .classList.remove(
+      "show"
+    );
 
 }
 
@@ -1138,10 +1295,15 @@ function closeEdit() {
 function closeDetail() {
 
   document
-    .getElementById("details")
-    .classList.remove("open");
+    .getElementById(
+      "details"
+    )
+    .classList.remove(
+      "open"
+    );
 
 }
+
 
 
 async function showMember(id) {
@@ -1161,7 +1323,9 @@ async function showMember(id) {
 
     if (!response.ok) {
 
-      throw new Error();
+      throw new Error(
+        "Nem sikerült lekérni a tag adatait."
+      );
 
     }
 
@@ -1171,14 +1335,22 @@ async function showMember(id) {
 
 
     document
-      .getElementById("details")
-      .classList.add("open");
+      .getElementById(
+        "details"
+      )
+      .classList.add(
+        "open"
+      );
 
 
     let paymentText;
 
 
-    if (Number(m.payment_status) === 2) {
+    if (
+      Number(
+        m.payment_status
+      ) === 2
+    ) {
 
       paymentText =
         "🟡 Mentesség";
@@ -1186,9 +1358,13 @@ async function showMember(id) {
     }
 
     else if (
-      Number(m.payment_status) === 1 &&
+      Number(
+        m.payment_status
+      ) === 1 &&
       m.payment_date &&
-      m.payment_date.startsWith(selectedMonth)
+      m.payment_date.startsWith(
+        selectedMonth
+      )
     ) {
 
       paymentText =
@@ -1205,62 +1381,71 @@ async function showMember(id) {
 
 
     let logs =
-      m.logs.map(x => `
+      (m.logs || [])
+        .map(x => `
 
-        <div class="log">
+          <div class="log">
 
-          <div class="log-top">
+            <div class="log-top">
 
-            <b class="points">
+              <b class="points">
 
-              +${x.points} pont
+                +${x.points} pont
 
-            </b>
+              </b>
 
-            ${
-              m.logged_in
-                ? `
 
-                <form
-                  method="post"
-                  action="/penalty/${x.id}/delete"
-                  class="inline"
-                  onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
-                >
+              ${
+                m.logged_in
+                  ? `
 
-                  <button
-                    type="submit"
-                    class="penalty-delete"
-                  >
-                    🗑
-                  </button>
+                    <form
+                      method="post"
+                      action="/penalty/${x.id}/delete"
+                      class="inline"
+                      onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
+                    >
 
-                </form>
+                      <button
+                        type="submit"
+                        class="penalty-delete"
+                      >
 
-                `
-                : ""
-            }
+                        🗑
+
+                      </button>
+
+                    </form>
+
+                  `
+                  : ""
+              }
+
+            </div>
+
+
+            <span>
+
+              ${x.reason}
+
+            </span>
+
+
+            <small>
+
+              ${(x.created_at || "")
+                .replace(
+                  "T",
+                  " "
+                )
+              }
+
+            </small>
 
           </div>
 
-
-          <span>
-            ${x.reason}
-          </span>
-
-
-          <small>
-
-            ${x.created_at.replace(
-              "T",
-              " "
-            )}
-
-          </small>
-
-        </div>
-
-      `).join("");
+        `)
+        .join("");
 
 
     if (!logs) {
@@ -1271,7 +1456,8 @@ async function showMember(id) {
     }
 
 
-    let editorContent = "";
+    let editorContent =
+      "";
 
 
     if (m.logged_in) {
@@ -1281,7 +1467,9 @@ async function showMember(id) {
         <div class="box">
 
           <h3>
+
             Hibapont hozzáadása
+
           </h3>
 
 
@@ -1289,6 +1477,13 @@ async function showMember(id) {
             method="post"
             action="/member/${m.id}/penalty"
           >
+
+            <input
+              type="hidden"
+              name="month"
+              value="${selectedMonth}"
+            >
+
 
             <input
               type="number"
@@ -1310,7 +1505,9 @@ async function showMember(id) {
               class="primary full"
               type="submit"
             >
+
               ＋ Hozzáadás
+
             </button>
 
           </form>
@@ -1321,7 +1518,9 @@ async function showMember(id) {
         <div class="box">
 
           <h3>
+
             Discord kapcsolat szerkesztése
+
           </h3>
 
 
@@ -1329,6 +1528,13 @@ async function showMember(id) {
             method="post"
             action="/member/${m.id}/discord"
           >
+
+            <input
+              type="hidden"
+              name="month"
+              value="${selectedMonth}"
+            >
+
 
             <input
               name="discord_username"
@@ -1348,7 +1554,9 @@ async function showMember(id) {
               class="secondary full"
               type="submit"
             >
+
               Discord mentése
+
             </button>
 
           </form>
@@ -1361,14 +1569,16 @@ async function showMember(id) {
 
 
     document
-      .getElementById("detailContent")
+      .getElementById(
+        "detailContent"
+      )
       .innerHTML = `
 
         <div class="profile">
 
           <div class="avatar">
 
-            ${m.name
+            ${(m.name || "?")
               .charAt(0)
               .toUpperCase()
             }
@@ -1377,7 +1587,9 @@ async function showMember(id) {
 
 
           <h2>
-            ${m.name}
+
+            ${m.name || ""}
+
           </h2>
 
 
@@ -1386,7 +1598,9 @@ async function showMember(id) {
             Karakter ID:
 
             <b>
-              ${m.character_id}
+
+              ${m.character_id || ""}
+
             </b>
 
           </p>
@@ -1398,7 +1612,9 @@ async function showMember(id) {
         <div class="box">
 
           <h3>
+
             Fizetési státusz
+
           </h3>
 
 
@@ -1414,7 +1630,9 @@ async function showMember(id) {
             Vizsgált hónap:
 
             <b>
+
               ${selectedMonth}
+
             </b>
 
           </p>
@@ -1427,8 +1645,12 @@ async function showMember(id) {
             <b>
 
               ${
-                m.payment_date ||
-                "Nincs megadva"
+                Number(m.payment_status) === 2
+                  ? "Mentesség"
+                  : (
+                      m.payment_date ||
+                      "Nincs megadva"
+                    )
               }
 
             </b>
@@ -1442,16 +1664,20 @@ async function showMember(id) {
         <div class="box">
 
           <h3>
+
             Hibapont összesen
+
           </h3>
 
 
           <div class="bigpoints">
 
-            ${m.total_points}
+            ${m.total_points || 0}
 
             <small>
+
               pont
+
             </small>
 
           </div>
@@ -1463,7 +1689,9 @@ async function showMember(id) {
         <div class="box">
 
           <h3>
+
             Discord profil
+
           </h3>
 
 
@@ -1492,7 +1720,9 @@ async function showMember(id) {
               : `
 
                 <p>
+
                   🔴 Nincs összekapcsolva
+
                 </p>
 
               `
@@ -1511,15 +1741,17 @@ async function showMember(id) {
         >
 
           <h3>
+
             Hibapont napló
+
           </h3>
+
 
           ${logs}
 
         </div>
 
       `;
-
 
   }
 
@@ -1528,6 +1760,7 @@ async function showMember(id) {
     console.error(error);
 
     alert(
+      error.message ||
       "Hiba történt a tag adatainak betöltésekor."
     );
 
@@ -1565,10 +1798,23 @@ async function syncDiscord() {
     );
 
 
-  button.disabled = true;
+  if (!button || !result) {
+
+    return;
+
+  }
+
+
+  button.disabled =
+    true;
+
 
   button.innerHTML =
     "⏳ Szinkronizálás...";
+
+
+  result.innerHTML =
+    '<p class="muted">Discord tagok lekérése folyamatban...</p>';
 
 
   try {
@@ -1577,9 +1823,42 @@ async function syncDiscord() {
       await fetch(
         "/discord/sync",
         {
-          method: "POST"
+          method: "POST",
+          headers: {
+            "Accept": "application/json"
+          }
         }
       );
+
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) ||
+      "";
+
+
+    if (
+      !contentType.includes(
+        "application/json"
+      )
+    ) {
+
+      const text =
+        await response.text();
+
+
+      console.error(
+        "A /discord/sync nem JSON választ adott:",
+        text
+      );
+
+
+      throw new Error(
+        "A Discord szerverválasz nem JSON formátumú."
+      );
+
+    }
 
 
     const data =
@@ -1590,10 +1869,46 @@ async function syncDiscord() {
 
       throw new Error(
         data.error ||
+        data.message ||
         "Nem sikerült a Discord szinkronizálás."
       );
 
     }
+
+
+    const matched =
+      Number(
+        data.matched ||
+        (
+          Array.isArray(data.linked)
+            ? data.linked.length
+            : 0
+        )
+      );
+
+
+    const notFound =
+      Array.isArray(
+        data.not_found
+      )
+        ? data.not_found.length
+        : Number(
+            data.not_found ||
+            0
+          );
+
+
+    const unmatched =
+      Number(
+        data.unmatched ||
+        (
+          Array.isArray(
+            data.discord_only
+          )
+            ? data.discord_only.length
+            : 0
+        )
+      );
 
 
     result.innerHTML = `
@@ -1601,24 +1916,26 @@ async function syncDiscord() {
       <div class="sync-success">
 
         <b>
+
           ✅ Discord szinkronizálás kész
+
         </b>
 
 
         <p>
 
           Sikeresen összekapcsolva:
-          <b>${data.matched || 0}</b>
+          <b>${matched}</b>
 
           <br>
 
           Nem található:
-          <b>${data.not_found ? data.not_found.length : 0}</b>
+          <b>${notFound}</b>
 
           <br>
 
           Discordon van, de nincs a Névsorban:
-          <b>${data.unmatched || 0}</b>
+          <b>${unmatched}</b>
 
         </p>
 
@@ -1627,24 +1944,36 @@ async function syncDiscord() {
     `;
 
 
-    loadUnmatchedDiscord();
+    await loadUnmatchedDiscord();
 
 
     setTimeout(
-      () => window.location.reload(),
+      () => {
+
+        window.location.reload();
+
+      },
       1500
     );
-
 
   }
 
   catch (error) {
 
+    console.error(
+      "Discord szinkron hiba:",
+      error
+    );
+
+
     result.innerHTML = `
 
       <div class="sync-error">
 
-        ❌ ${error.message}
+        ❌ ${
+          error.message ||
+          "Ismeretlen hiba történt."
+        }
 
       </div>
 
@@ -1654,7 +1983,9 @@ async function syncDiscord() {
 
   finally {
 
-    button.disabled = false;
+    button.disabled =
+      false;
+
 
     button.innerHTML =
       "🔄 Discord szinkronizálás";
@@ -1684,125 +2015,66 @@ async function loadUnmatchedDiscord() {
   }
 
 
+  container.innerHTML =
+    '<p class="muted">Lista betöltése...</p>';
+
+
   try {
 
     const response =
       await fetch(
-        "/discord/unmatched"
+        "/discord/unmatched",
+        {
+          headers: {
+            "Accept": "application/json"
+          }
+        }
       );
+
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) ||
+      "";
+
+
+    if (
+      !contentType.includes(
+        "application/json"
+      )
+    ) {
+
+      const text =
+        await response.text();
+
+
+      console.error(
+        "A /discord/unmatched nem JSON választ adott:",
+        text
+      );
+
+
+      throw new Error(
+        "A Discord lista szerverválasza nem JSON formátumú."
+      );
+
+    }
 
 
     const data =
       await response.json();
 
 
-    const members =
-      data.members || [];
+    if (!response.ok) {
 
-
-    if (!members.length) {
-
-      container.innerHTML = `
-
-        <div class="discord-all-good">
-
-          🟢 Minden Discord tag megtalálható
-          a Névsorban.
-
-        </div>
-
-      `;
-
-      return;
+      throw new Error(
+        data.error ||
+        data.message ||
+        "Nem sikerült lekérni a Discord tagokat."
+      );
 
     }
 
 
-    container.innerHTML =
-      members.map(member => `
-
-        <div class="unmatched-member">
-
-          <div class="unmatched-avatar">
-
-            ${(
-              member.display_name ||
-              member.username ||
-              "?"
-            )
-              .charAt(0)
-              .toUpperCase()
-            }
-
-          </div>
-
-
-          <div class="unmatched-info">
-
-            <b>
-
-              ${
-                member.display_name ||
-                member.username
-              }
-
-            </b>
-
-
-            <small>
-
-              @${member.username || "-"}
-
-            </small>
-
-
-            <small>
-
-              Discord ID:
-              ${member.id}
-
-            </small>
-
-          </div>
-
-
-          <div class="unmatched-status">
-
-            🔴 Nincs a Névsorban
-
-          </div>
-
-        </div>
-
-      `).join("");
-
-
-  }
-
-  catch (error) {
-
-    console.error(error);
-
-  }
-
-}
-
-
-
-/* =====================================================
-   OLDAL BETÖLTÉS
-===================================================== */
-
-if (loggedIn) {
-
-  loadUnmatchedDiscord();
-
-}
-
-
-</script>
-
-
-</body>
-
-</html>
+    
