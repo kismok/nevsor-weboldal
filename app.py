@@ -115,6 +115,10 @@ def init_db():
         character_id TEXT NOT NULL UNIQUE,
         discord_user_id TEXT UNIQUE,
         discord_username TEXT,
+
+        payment_status INTEGER NOT NULL DEFAULT 0,
+        payment_date TEXT,
+
         created_at TEXT NOT NULL
     );
 
@@ -130,6 +134,41 @@ def init_db():
             ON DELETE CASCADE
     );
     """)
+
+
+    # =====================================================
+    # RÉGI ADATBÁZIS FRISSÍTÉSE
+    # =====================================================
+
+    columns = conn.execute(
+        "PRAGMA table_info(members)"
+    ).fetchall()
+
+    column_names = [
+        column["name"]
+        for column in columns
+    ]
+
+
+    if "payment_status" not in column_names:
+
+        conn.execute(
+            """
+            ALTER TABLE members
+            ADD COLUMN payment_status INTEGER NOT NULL DEFAULT 0
+            """
+        )
+
+
+    if "payment_date" not in column_names:
+
+        conn.execute(
+            """
+            ALTER TABLE members
+            ADD COLUMN payment_date TEXT
+            """
+        )
+
 
     conn.commit()
 
@@ -280,11 +319,23 @@ def add_member():
         ""
     ).strip()
 
+    payment_status = request.form.get(
+        "payment_status",
+        "0"
+    )
+
+    payment_date = request.form.get(
+        "payment_date",
+        ""
+    ).strip()
+
+
     if not name or not character_id:
 
         return redirect(
             url_for("index")
         )
+
 
     try:
 
@@ -294,14 +345,18 @@ def add_member():
             (
                 name,
                 character_id,
+                payment_status,
+                payment_date,
                 created_at
             )
 
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 name,
                 character_id,
+                int(payment_status),
+                payment_date or None,
                 datetime.now().isoformat(
                     timespec="seconds"
                 )
@@ -345,11 +400,23 @@ def edit_member(member_id):
         ""
     ).strip()
 
+    payment_status = request.form.get(
+        "payment_status",
+        "0"
+    )
+
+    payment_date = request.form.get(
+        "payment_date",
+        ""
+    ).strip()
+
+
     if not name or not character_id:
 
         return redirect(
             url_for("index")
         )
+
 
     try:
 
@@ -359,13 +426,17 @@ def edit_member(member_id):
 
             SET
                 name = ?,
-                character_id = ?
+                character_id = ?,
+                payment_status = ?,
+                payment_date = ?
 
             WHERE id = ?
             """,
             (
                 name,
                 character_id,
+                int(payment_status),
+                payment_date or None,
                 member_id
             )
         )
@@ -443,6 +514,12 @@ def member_detail(member_id):
 
         "discord_username":
             member["discord_username"],
+
+        "payment_status":
+            member["payment_status"],
+
+        "payment_date":
+            member["payment_date"],
 
         "total_points":
             member["total_points"],
@@ -921,7 +998,6 @@ async def sync_discord_members():
 
         found_member = None
 
-        # Először a korábban mentett Discord ID alapján keresünk
         if db_member["discord_user_id"]:
 
             try:
@@ -941,8 +1017,6 @@ async def sync_discord_members():
 
                 found_member = None
 
-        # Ha nincs ID alapján találat,
-        # akkor név alapján keresünk
         if not found_member:
 
             for discord_member in guild.members:
@@ -959,10 +1033,6 @@ async def sync_discord_members():
                     found_member = discord_member
 
                     break
-
-        # ---------------------------------------------
-        # TALÁLTUK
-        # ---------------------------------------------
 
         if found_member:
 
@@ -1002,10 +1072,6 @@ async def sync_discord_members():
 
             })
 
-        # ---------------------------------------------
-        # NEM TALÁLHATÓ
-        # ---------------------------------------------
-
         else:
 
             not_found.append({
@@ -1021,11 +1087,6 @@ async def sync_discord_members():
     conn.commit()
 
     conn.close()
-
-
-    # =================================================
-    # DISCORDON VAN, DE NINCS A NÉVSORBAN
-    # =================================================
 
     discord_only = []
 
