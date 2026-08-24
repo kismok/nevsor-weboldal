@@ -41,9 +41,13 @@
         ⚠ Hibapont napló
       </a>
 
+      {% if logged_in %}
+
       <a href="#discord">
         ◉ Discord kapcsolatok
       </a>
+
+      {% endif %}
 
     </nav>
 
@@ -387,7 +391,7 @@
         >
 
           <p class="muted">
-            Nyomd meg a Discord szinkronizálás gombot.
+            Lista betöltése...
           </p>
 
         </div>
@@ -507,6 +511,7 @@
   </div>
 
 </div>
+
 
 
 <!-- TAG SZERKESZTÉSE -->
@@ -817,6 +822,9 @@ async function syncDiscord() {
     `;
 
 
+    loadUnmatchedDiscord();
+
+
     setTimeout(
       () => {
 
@@ -854,6 +862,155 @@ async function syncDiscord() {
 
     button.innerHTML =
       "🔄 Discord szinkronizálás";
+
+  }
+
+}
+
+
+
+/* =====================================================
+   DISCORDON VAN, DE NINCS A NÉVSORBAN
+===================================================== */
+
+async function loadUnmatchedDiscord() {
+
+  const container =
+    document.getElementById(
+      "unmatchedDiscordList"
+    );
+
+
+  if (!container) {
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    '<p class="muted">Lista betöltése...</p>';
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/discord/unmatched"
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Nem sikerült lekérni a Discord tagokat."
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    const members =
+      data.members || [];
+
+
+    if (!members.length) {
+
+      container.innerHTML = `
+
+        <div class="discord-all-good">
+
+          🟢 Minden Discord tag megtalálható
+          a Névsorban.
+
+        </div>
+
+      `;
+
+      return;
+
+    }
+
+
+    container.innerHTML =
+      members.map(member => `
+
+        <div class="unmatched-member">
+
+          <div class="unmatched-avatar">
+
+            ${(
+              member.display_name ||
+              member.username ||
+              "?"
+            )
+              .charAt(0)
+              .toUpperCase()
+            }
+
+          </div>
+
+
+          <div class="unmatched-info">
+
+            <b>
+
+              ${
+                member.display_name ||
+                member.username
+              }
+
+            </b>
+
+
+            <small>
+
+              @${member.username || "-"}
+
+            </small>
+
+
+            <small>
+
+              Discord ID:
+              ${member.id}
+
+            </small>
+
+          </div>
+
+
+          <div class="unmatched-status">
+
+            🔴 Nincs a Névsorban
+
+          </div>
+
+        </div>
+
+      `).join("");
+
+
+  }
+
+
+  catch (error) {
+
+    console.error(error);
+
+
+    container.innerHTML = `
+
+      <p class="sync-error">
+
+        ❌ ${error.message}
+
+      </p>
+
+    `;
 
   }
 
@@ -1012,6 +1169,8 @@ async function showMember(id) {
       editorContent = `
 
 
+      <!-- HIBAPONT HOZZÁADÁSA -->
+
       <div class="box">
 
         <h3>
@@ -1055,27 +1214,16 @@ async function showMember(id) {
 
 
 
+      <!-- DISCORD SZERKESZTÉSE -->
+
       <div
         class="box"
-        id="member-discord"
+        id="member-discord-edit"
       >
 
         <h3>
-          Discord profil
+          Discord kapcsolat szerkesztése
         </h3>
-
-
-        <p>
-
-          ${
-            m.discord_username
-
-              ? "🟢 👤 " + m.discord_username
-
-              : "🔴 Nincs összekapcsolva"
-          }
-
-        </p>
 
 
         <form
@@ -1120,6 +1268,8 @@ async function showMember(id) {
       .innerHTML = `
 
 
+      <!-- PROFIL -->
+
       <div class="profile">
 
         <div class="avatar">
@@ -1155,6 +1305,8 @@ async function showMember(id) {
 
 
 
+      <!-- HIBAPONT ÖSSZESEN -->
+
       <div class="box">
 
         <h3>
@@ -1175,8 +1327,69 @@ async function showMember(id) {
       </div>
 
 
+
+      <!-- DISCORD PROFIL -->
+
+      <div
+        class="box"
+        id="member-discord"
+      >
+
+        <h3>
+          Discord profil
+        </h3>
+
+
+        ${
+          m.discord_username
+
+            ? `
+
+              <p>
+
+                🟢 👤
+                <b>${m.discord_username}</b>
+
+              </p>
+
+              ${
+                m.discord_user_id
+
+                  ? `
+
+                    <small>
+
+                      Discord ID:
+                      ${m.discord_user_id}
+
+                    </small>
+
+                  `
+
+                  : ""
+              }
+
+            `
+
+            : `
+
+              <p>
+
+                🔴 Nincs összekapcsolva
+
+              </p>
+
+            `
+        }
+
+      </div>
+
+
       ${editorContent}
 
+
+
+      <!-- HIBAPONT NAPLÓ -->
 
       <div
         class="box"
@@ -1207,6 +1420,17 @@ async function showMember(id) {
     );
 
   }
+
+}
+
+
+/* =====================================================
+   OLDAL BETÖLTÉSEKOR DISCORD LISTA
+===================================================== */
+
+if (loggedIn) {
+
+  loadUnmatchedDiscord();
 
 }
 
