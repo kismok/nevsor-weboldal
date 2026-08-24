@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="hu">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Belépés - Névsor</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}"
+  >
+</head>
+
+
+<body class="login-body">
+
+
+<div class="login-container">
+
+
+  <div class="login-card">
+
+
+    <div class="login-logo">
+
+      ▣
+
+    </div>
+
+
+    <h1>
+      NÉVSOR
+    </h1>
+
+
+    <p class="muted">
+      Jelentkezz be a szerkesztéshez
+    </p>
+
+
+    {% if error %}
+
+      <div class="login-error">
+
+        ❌ Hibás felhasználónév vagy jelszó.
+
+      </div>
+
+    {% endif %}
+
+
+    <form
+      method="post"
+      action="/login"
+    >
+
+
+      <label>
+        Felhasználónév
+      </label>
+
+
+      <input
+        type="text"
+        name="username"
+        autocomplete="username"
+        required
+        autofocus
+      >
+
+
+
+      <label>
+        Jelszó
+      </label>
+
+
+      <input
+        type="password"
+        name="password"
+        autocomplete="current-password"
+        required
+      >
+
+
+
+      <button
+        class="primary full"
+        type="submit"
+      >
+
+        🔐 Belépés
+
+      </button>
+
+
+    </form>
+
+
+    <a
+      href="/"
+      class="back-link"
+    >
+
+      ← Vissza a névsorhoz
+
+    </a>
+
+
+  </div>
+
+
+</div>
+
+
+</body>
+
+</html>
