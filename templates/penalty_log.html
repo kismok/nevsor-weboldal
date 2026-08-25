@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="hu">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Hibapont napló</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+    <!-- =====================================================
+         BAL OLDALI MENÜ
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            ▣ <span>NÉVSOR</span>
+        </div>
+
+
+        <nav>
+
+            <a href="/">
+                ☷ Névsor
+            </a>
+
+
+            <a
+                class="active"
+                href="/penalty-log"
+            >
+                ⚠ Hibapont napló
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         FŐ TARTALOM
+    ====================================================== -->
+
+    <main>
+
+        <header>
+
+            <div class="hamb">
+                ☰
+            </div>
+
+
+            <form
+                class="search"
+                method="get"
+                action="/penalty-log"
+            >
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q }}"
+                    placeholder="Keresés név, ID vagy indoklás alapján..."
+                >
+
+            </form>
+
+
+            <div class="auth-buttons">
+
+                {% if logged_in %}
+
+                <span class="logged-user">
+                    🔓 Szerkesztő mód
+                </span>
+
+
+                <a
+                    href="/logout"
+                    class="secondary"
+                >
+                    Kijelentkezés
+                </a>
+
+                {% else %}
+
+                <a
+                    href="/login"
+                    class="secondary"
+                >
+                    🔒 Bejelentkezés
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </header>
+
+
+
+        <section class="content">
+
+
+            <!-- =====================================================
+                 FEJLÉC
+            ====================================================== -->
+
+            <div class="title-row">
+
+                <div>
+
+                    <h1>
+                        ⚠ HIBAPONT NAPLÓ
+                    </h1>
+
+                    <p>
+                        Az összes kiosztott hibapont időrendi sorrendben
+                    </p>
+
+                </div>
+
+
+                <div class="title-buttons">
+
+                    <a
+                        href="/"
+                        class="secondary"
+                    >
+                        ← Vissza a Névsorhoz
+                    </a>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =====================================================
+                 TÁBLÁZAT
+            ====================================================== -->
+
+            <div class="card">
+
+                <div class="table-wrap">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>#</th>
+                                <th>Dátum</th>
+                                <th>Név</th>
+                                <th>Karakter ID</th>
+                                <th>Hibapont</th>
+                                <th>Indoklás</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for p in penalties %}
+
+                            <tr>
+
+                                <td class="row-number">
+
+                                    {{ loop.index }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {{
+                                        p.created_at
+                                        .replace("T", " ")
+                                    }}
+
+                                </td>
+
+
+                                <td>
+
+                                    <b>
+                                        {{ p.name }}
+                                    </b>
+
+                                </td>
+
+
+                                <td>
+
+                                    {{ p.character_id }}
+
+                                </td>
+
+
+                                <td
+                                    class="points"
+                                >
+
+                                    +{{ p.points }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {{ p.reason }}
+
+                                </td>
+
+                            </tr>
+
+
+                            {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="6"
+                                    class="empty"
+                                >
+
+                                    Még nincs rögzített hibapont.
+
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+    </main>
+
+
+</div>
+
+
+</body>
+</html>
