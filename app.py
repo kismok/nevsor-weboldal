@@ -29,11 +29,6 @@ from flask import (
 
 app = Flask(__name__)
 
-
-# =========================================================
-# SESSION TITKOSÍTÓ KULCS
-# =========================================================
-
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "csereld-le-egy-hosszu-titkos-kulcsra"
@@ -41,7 +36,7 @@ app.secret_key = os.environ.get(
 
 
 # =========================================================
-# BEJELENTKEZÉSI ADATOK
+# BEJELENTKEZÉS
 # =========================================================
 
 ADMIN_USERNAME = os.environ.get(
@@ -71,15 +66,12 @@ def require_login():
 
 def current_month():
 
-    return datetime.now().strftime(
-        "%Y-%m"
-    )
+    return datetime.now().strftime("%Y-%m")
 
 
 def normalize_month(value):
 
     if not value:
-
         return current_month()
 
     try:
@@ -153,7 +145,8 @@ DB_PATH = os.environ.get(
 def get_connection():
 
     conn = sqlite3.connect(
-        DB_PATH
+        DB_PATH,
+        timeout=30
     )
 
     conn.row_factory = sqlite3.Row
@@ -188,7 +181,7 @@ def close_db(_error=None):
 
 
 # =========================================================
-# ADATBÁZIS LÉTREHOZÁS / FRISSÍTÉS
+# ADATBÁZIS LÉTREHOZÁS
 # =========================================================
 
 def init_db():
@@ -236,20 +229,14 @@ def init_db():
     );
     """)
 
-
     columns = conn.execute(
         "PRAGMA table_info(members)"
     ).fetchall()
 
-
     column_names = [
-
         column["name"]
-
         for column in columns
-
     ]
-
 
     if "payment_status" not in column_names:
 
@@ -259,14 +246,12 @@ def init_db():
             INTEGER NOT NULL DEFAULT 0
         """)
 
-
     if "payment_date" not in column_names:
 
         conn.execute("""
             ALTER TABLE members
             ADD COLUMN payment_date TEXT
         """)
-
 
     old_members = conn.execute("""
         SELECT
@@ -282,7 +267,6 @@ def init_db():
             OR payment_date IS NOT NULL
     """).fetchall()
 
-
     for member in old_members:
 
         if member["payment_date"]:
@@ -292,9 +276,7 @@ def init_db():
                 payment_month = datetime.strptime(
                     member["payment_date"],
                     "%Y-%m-%d"
-                ).strftime(
-                    "%Y-%m"
-                )
+                ).strftime("%Y-%m")
 
             except ValueError:
 
@@ -303,7 +285,6 @@ def init_db():
         else:
 
             payment_month = current_month()
-
 
         existing = conn.execute("""
             SELECT id
@@ -318,13 +299,11 @@ def init_db():
             payment_month
         )).fetchone()
 
-
         if not existing:
 
             now = datetime.now().isoformat(
                 timespec="seconds"
             )
-
 
             conn.execute("""
                 INSERT INTO payments
@@ -346,7 +325,6 @@ def init_db():
                 member["created_at"] or now,
                 now
             ))
-
 
     conn.commit()
 
@@ -375,7 +353,6 @@ def login():
             ""
         )
 
-
         if (
             username == ADMIN_USERNAME
             and password == ADMIN_PASSWORD
@@ -387,12 +364,10 @@ def login():
                 url_for("index")
             )
 
-
         return render_template(
             "login.html",
             error="Hibás felhasználónév vagy jelszó."
         )
-
 
     return render_template(
         "login.html",
@@ -415,7 +390,7 @@ def logout():
 
 
 # =========================================================
-# WEBOLDAL
+# FŐOLDAL
 # =========================================================
 
 @app.route("/")
@@ -426,26 +401,24 @@ def index():
         ""
     ).strip()
 
-
     selected_month = get_selected_month()
-
 
     query = """
         SELECT
 
-            m.id AS id,
-            m.name AS name,
-            m.character_id AS character_id,
-            m.discord_user_id AS discord_user_id,
-            m.discord_username AS discord_username,
-            m.created_at AS created_at,
+            m.id,
+            m.name,
+            m.character_id,
+            m.discord_user_id,
+            m.discord_username,
+            m.created_at,
 
             COALESCE(
                 pmt.payment_status,
                 0
             ) AS payment_status,
 
-            pmt.payment_date AS payment_date,
+            pmt.payment_date,
 
             COALESCE(
                 SUM(p.points),
@@ -465,27 +438,18 @@ def index():
             ON p.member_id = m.id
     """
 
-
-    params = [
-        selected_month
-    ]
-
+    params = [selected_month]
 
     if q:
 
-        query += """
-            WHERE
-
-                m.name LIKE ?
-
-                OR m.character_id LIKE ?
-
-                OR m.discord_username LIKE ?
-        """
-
-
         like = f"%{q}%"
 
+        query += """
+            WHERE
+                m.name LIKE ?
+                OR m.character_id LIKE ?
+                OR m.discord_username LIKE ?
+        """
 
         params.extend([
             like,
@@ -493,9 +457,7 @@ def index():
             like
         ])
 
-
     query += """
-
         GROUP BY
             m.id,
             m.name,
@@ -510,12 +472,10 @@ def index():
             m.name COLLATE NOCASE
     """
 
-
     members = db().execute(
         query,
         params
     ).fetchall()
-
 
     return render_template(
         "index.html",
@@ -530,7 +490,7 @@ def index():
 
 
 # =========================================================
-# ÚJ TAG HOZZÁADÁSA
+# ÚJ TAG
 # =========================================================
 
 @app.route(
@@ -545,30 +505,25 @@ def add_member():
             url_for("login")
         )
 
-
     name = request.form.get(
         "name",
         ""
     ).strip()
-
 
     character_id = request.form.get(
         "character_id",
         ""
     ).strip()
 
-
     payment_status = request.form.get(
         "payment_status",
         "0"
     )
 
-
     payment_date = request.form.get(
         "payment_date",
         ""
     ).strip()
-
 
     payment_month = normalize_month(
         request.form.get(
@@ -576,7 +531,6 @@ def add_member():
             ""
         )
     )
-
 
     if not name or not character_id:
 
@@ -587,12 +541,9 @@ def add_member():
             )
         )
 
-
     try:
 
-        status = int(
-            payment_status
-        )
+        status = int(payment_status)
 
     except (
         ValueError,
@@ -600,7 +551,6 @@ def add_member():
     ):
 
         status = 0
-
 
     if status not in (
         0,
@@ -610,21 +560,17 @@ def add_member():
 
         status = 0
 
-
     if status == 2:
 
         payment_date = ""
-
 
     now = datetime.now().isoformat(
         timespec="seconds"
     )
 
-
     try:
 
         conn = db()
-
 
         cursor = conn.execute("""
             INSERT INTO members
@@ -641,9 +587,7 @@ def add_member():
             now
         ))
 
-
         member_id = cursor.lastrowid
-
 
         conn.execute("""
             INSERT INTO payments
@@ -666,14 +610,11 @@ def add_member():
             now
         ))
 
-
         conn.commit()
-
 
     except sqlite3.IntegrityError:
 
         db().rollback()
-
 
     return redirect(
         url_for(
@@ -699,30 +640,25 @@ def edit_member(member_id):
             url_for("login")
         )
 
-
     name = request.form.get(
         "name",
         ""
     ).strip()
-
 
     character_id = request.form.get(
         "character_id",
         ""
     ).strip()
 
-
     payment_status = request.form.get(
         "payment_status",
         "0"
     )
 
-
     payment_date = request.form.get(
         "payment_date",
         ""
     ).strip()
-
 
     payment_month = normalize_month(
         request.form.get(
@@ -730,7 +666,6 @@ def edit_member(member_id):
             ""
         )
     )
-
 
     if not name or not character_id:
 
@@ -741,12 +676,9 @@ def edit_member(member_id):
             )
         )
 
-
     try:
 
-        status = int(
-            payment_status
-        )
+        status = int(payment_status)
 
     except (
         ValueError,
@@ -754,7 +686,6 @@ def edit_member(member_id):
     ):
 
         status = 0
-
 
     if status not in (
         0,
@@ -764,21 +695,17 @@ def edit_member(member_id):
 
         status = 0
 
-
     if status == 2:
 
         payment_date = ""
-
 
     now = datetime.now().isoformat(
         timespec="seconds"
     )
 
-
     try:
 
         conn = db()
-
 
         member_exists = conn.execute("""
             SELECT id
@@ -788,11 +715,9 @@ def edit_member(member_id):
             member_id,
         )).fetchone()
 
-
         if not member_exists:
 
             abort(404)
-
 
         conn.execute("""
             UPDATE members
@@ -808,7 +733,6 @@ def edit_member(member_id):
             member_id
         ))
 
-
         existing = conn.execute("""
             SELECT id
 
@@ -816,13 +740,11 @@ def edit_member(member_id):
 
             WHERE
                 member_id = ?
-
                 AND payment_month = ?
         """, (
             member_id,
             payment_month
         )).fetchone()
-
 
         if existing:
 
@@ -836,7 +758,6 @@ def edit_member(member_id):
 
                 WHERE
                     member_id = ?
-
                     AND payment_month = ?
             """, (
                 status,
@@ -869,14 +790,11 @@ def edit_member(member_id):
                 now
             ))
 
-
         conn.commit()
-
 
     except sqlite3.IntegrityError:
 
         db().rollback()
-
 
     return redirect(
         url_for(
@@ -902,25 +820,23 @@ def member_detail(member_id):
         )
     )
 
-
     conn = db()
-
 
     member = conn.execute("""
         SELECT
 
-            m.id AS id,
-            m.name AS name,
-            m.character_id AS character_id,
-            m.discord_user_id AS discord_user_id,
-            m.discord_username AS discord_username,
+            m.id,
+            m.name,
+            m.character_id,
+            m.discord_user_id,
+            m.discord_username,
 
             COALESCE(
                 pmt.payment_status,
                 0
             ) AS payment_status,
 
-            pmt.payment_date AS payment_date,
+            pmt.payment_date,
 
             COALESCE(
                 SUM(p.points),
@@ -954,11 +870,9 @@ def member_detail(member_id):
         member_id
     )).fetchone()
 
-
     if not member:
 
         abort(404)
-
 
     logs = conn.execute("""
         SELECT *
@@ -972,14 +886,16 @@ def member_detail(member_id):
         member_id,
     )).fetchall()
 
-
     return jsonify({
 
-        "id": member["id"],
+        "id":
+            member["id"],
 
-        "name": member["name"],
+        "name":
+            member["name"],
 
-        "character_id": member["character_id"],
+        "character_id":
+            member["character_id"],
 
         "discord_user_id":
             member["discord_user_id"],
@@ -988,10 +904,7 @@ def member_detail(member_id):
             member["discord_username"],
 
         "payment_status":
-            int(
-                member["payment_status"]
-                or 0
-            ),
+            int(member["payment_status"] or 0),
 
         "payment_date":
             member["payment_date"],
@@ -1000,10 +913,7 @@ def member_detail(member_id):
             selected_month,
 
         "total_points":
-            int(
-                member["total_points"]
-                or 0
-            ),
+            int(member["total_points"] or 0),
 
         "logged_in":
             is_logged_in(),
@@ -1018,7 +928,7 @@ def member_detail(member_id):
 
 
 # =========================================================
-# HIBAPONT HOZZÁADÁSA
+# HIBAPONT
 # =========================================================
 
 @app.route(
@@ -1033,18 +943,15 @@ def add_penalty(member_id):
             url_for("login")
         )
 
-
     points = request.form.get(
         "points",
         "0"
     ).strip()
 
-
     reason = request.form.get(
         "reason",
         ""
     ).strip()
-
 
     month = normalize_month(
         request.form.get(
@@ -1053,17 +960,13 @@ def add_penalty(member_id):
         )
     )
 
-
     try:
 
-        points = int(
-            points
-        )
+        points = int(points)
 
     except ValueError:
 
         points = 0
-
 
     if points > 0 and reason:
 
@@ -1087,7 +990,6 @@ def add_penalty(member_id):
         ))
 
         db().commit()
-
 
     return redirect(
         url_for(
@@ -1113,7 +1015,6 @@ def delete_penalty(penalty_id):
             url_for("login")
         )
 
-
     month = normalize_month(
         request.form.get(
             "month",
@@ -1121,9 +1022,7 @@ def delete_penalty(penalty_id):
         )
     )
 
-
     conn = db()
-
 
     penalty = conn.execute("""
         SELECT member_id
@@ -1135,11 +1034,9 @@ def delete_penalty(penalty_id):
         penalty_id,
     )).fetchone()
 
-
     if not penalty:
 
         abort(404)
-
 
     conn.execute("""
         DELETE FROM penalty_log
@@ -1149,9 +1046,7 @@ def delete_penalty(penalty_id):
         penalty_id,
     ))
 
-
     conn.commit()
-
 
     return redirect(
         url_for(
@@ -1177,18 +1072,15 @@ def set_discord(member_id):
             url_for("login")
         )
 
-
     discord_user_id = request.form.get(
         "discord_user_id",
         ""
     ).strip()
 
-
     discord_username = request.form.get(
         "discord_username",
         ""
     ).strip()
-
 
     month = normalize_month(
         request.form.get(
@@ -1196,7 +1088,6 @@ def set_discord(member_id):
             ""
         )
     )
-
 
     try:
 
@@ -1216,11 +1107,9 @@ def set_discord(member_id):
 
         db().commit()
 
-
     except sqlite3.IntegrityError:
 
         db().rollback()
-
 
     return redirect(
         url_for(
@@ -1246,14 +1135,12 @@ def delete_member(member_id):
             url_for("login")
         )
 
-
     month = normalize_month(
         request.form.get(
             "month",
             ""
         )
     )
-
 
     db().execute("""
         DELETE FROM members
@@ -1263,9 +1150,7 @@ def delete_member(member_id):
         member_id,
     ))
 
-
     db().commit()
-
 
     return redirect(
         url_for(
@@ -1294,8 +1179,11 @@ discord_started = False
 
 intents = discord.Intents.default()
 
-intents.message_content = True
+# Ezeknek a Discord Developer Portalban is
+# engedélyezve kell lenniük.
+
 intents.members = True
+intents.message_content = True
 
 
 bot = commands.Bot(
@@ -1312,8 +1200,24 @@ async def on_ready():
     discord_loop = asyncio.get_running_loop()
 
     print(
-        f"Discord bot elindult: {bot.user}"
+        f"✅ Discord bot elindult: {bot.user}"
     )
+
+    print(
+        f"📡 Bot ID: {bot.user.id}"
+    )
+
+    if DISCORD_GUILD_ID:
+
+        print(
+            f"🏠 Discord szerver ID: {DISCORD_GUILD_ID}"
+        )
+
+    else:
+
+        print(
+            "❌ DISCORD_GUILD_ID nincs beállítva!"
+        )
 
 
 # =========================================================
@@ -1336,64 +1240,54 @@ async def link_character(
 
         return
 
-
     conn = get_connection()
 
-
-    member = conn.execute("""
-        SELECT
-            id,
-            name,
-            character_id
-
-        FROM members
-
-        WHERE character_id = ?
-    """, (
-        str(character_id),
-    )).fetchone()
-
-
-    if not member:
-
-        conn.close()
-
-        await ctx.send(
-            f"❌ Nem található karakter "
-            f"ezzel az ID-val: `{character_id}`"
-        )
-
-        return
-
-
-    existing = conn.execute("""
-        SELECT
-            name,
-            character_id
-
-        FROM members
-
-        WHERE discord_user_id = ?
-    """, (
-        str(ctx.author.id),
-    )).fetchone()
-
-
-    if existing:
-
-        conn.close()
-
-        await ctx.send(
-            "⚠️ Ez a Discord fiók már össze van kapcsolva "
-            f"a következő karakterrel: "
-            f"**{existing['name']}** "
-            f"(ID: `{existing['character_id']}`)"
-        )
-
-        return
-
-
     try:
+
+        member = conn.execute("""
+            SELECT
+                id,
+                name,
+                character_id
+
+            FROM members
+
+            WHERE character_id = ?
+        """, (
+            str(character_id),
+        )).fetchone()
+
+        if not member:
+
+            await ctx.send(
+                f"❌ Nem található karakter "
+                f"ezzel az ID-val: `{character_id}`"
+            )
+
+            return
+
+        existing = conn.execute("""
+            SELECT
+                name,
+                character_id
+
+            FROM members
+
+            WHERE discord_user_id = ?
+        """, (
+            str(ctx.author.id),
+        )).fetchone()
+
+        if existing:
+
+            await ctx.send(
+                "⚠️ Ez a Discord fiók már össze van kapcsolva "
+                f"ezzel a karakterrel: "
+                f"**{existing['name']}** "
+                f"(ID: `{existing['character_id']}`)"
+            )
+
+            return
 
         conn.execute("""
             UPDATE members
@@ -1409,9 +1303,7 @@ async def link_character(
             member["id"]
         ))
 
-
         conn.commit()
-
 
         await ctx.send(
             "✅ **Sikeres összekapcsolás!**\n\n"
@@ -1420,14 +1312,14 @@ async def link_character(
             f"💬 Discord: **{ctx.author.display_name}**"
         )
 
-
     except sqlite3.IntegrityError:
+
+        conn.rollback()
 
         await ctx.send(
             "❌ Ez a Discord fiók vagy karakter "
             "már hozzá van rendelve valakihez."
         )
-
 
     finally:
 
@@ -1435,7 +1327,7 @@ async def link_character(
 
 
 # =========================================================
-# DISCORD NÉV NORMALIZÁLÁS
+# NÉV NORMALIZÁLÁS
 # =========================================================
 
 def normalize_name(value):
@@ -1443,7 +1335,6 @@ def normalize_name(value):
     if not value:
 
         return ""
-
 
     value = str(value)
     value = value.strip()
@@ -1471,7 +1362,7 @@ def normalize_name(value):
 
 
 # =========================================================
-# DISCORD NÉV EGYEZÉS
+# NÉV EGYEZÉS
 # =========================================================
 
 def names_match(
@@ -1483,11 +1374,9 @@ def names_match(
         db_name
     )
 
-
     if not normalized_db_name:
 
         return False
-
 
     possible_names = [
 
@@ -1509,12 +1398,9 @@ def names_match(
             None
         ),
 
-        str(
-            discord_member
-        )
+        str(discord_member)
 
     ]
-
 
     for discord_name in possible_names:
 
@@ -1522,11 +1408,9 @@ def names_match(
             discord_name
         )
 
-
         if not normalized_discord_name:
 
             continue
-
 
         if (
             normalized_discord_name
@@ -1535,12 +1419,54 @@ def names_match(
 
             return True
 
-
     return False
 
 
 # =========================================================
-# DISCORD SZERVER ÖSSZEVETÉS
+# DISCORD TAGOK LEKÉRÉSE
+# =========================================================
+
+async def get_discord_members(guild):
+
+    members = [
+        member
+        for member in guild.members
+        if not member.bot
+    ]
+
+    if members:
+
+        return members
+
+    print(
+        "📡 Discord taglista nincs cache-ben, lekérés..."
+    )
+
+    fetched_members = []
+
+    try:
+
+        async for member in guild.fetch_members(
+            limit=None
+        ):
+
+            if not member.bot:
+
+                fetched_members.append(
+                    member
+                )
+
+    except Exception as e:
+
+        print(
+            f"❌ Discord taglista lekérési hiba: {repr(e)}"
+        )
+
+    return fetched_members
+
+
+# =========================================================
+# DISCORD SZERVER SZINKRONIZÁLÁS
 # =========================================================
 
 async def sync_discord_members():
@@ -1552,47 +1478,55 @@ async def sync_discord_members():
             "error": "DISCORD_GUILD_ID nincs beállítva."
         }
 
-
     try:
 
         guild_id = int(
             DISCORD_GUILD_ID
         )
 
-    except ValueError:
+    except (
+        ValueError,
+        TypeError
+    ):
 
         return {
             "success": False,
             "error": "Hibás DISCORD_GUILD_ID."
         }
 
-
     guild = bot.get_guild(
         guild_id
     )
 
-
     if not guild:
+
+        try:
+
+            guild = await bot.fetch_guild(
+                guild_id
+            )
+
+        except Exception as e:
+
+            return {
+                "success": False,
+                "error":
+                    f"A Discord szerver nem érhető el: {repr(e)}"
+            }
+
+    discord_members = await get_discord_members(
+        guild
+    )
+
+    if not discord_members:
 
         return {
             "success": False,
-            "error": "A Discord szerver nem található."
+            "error":
+                "Nem sikerült lekérni a Discord szerver taglistáját."
         }
 
-
-    try:
-
-        await guild.chunk()
-
-    except Exception as e:
-
-        print(
-            f"Discord member chunk hiba: {repr(e)}"
-        )
-
-
     conn = get_connection()
-
 
     try:
 
@@ -1606,93 +1540,100 @@ async def sync_discord_members():
             FROM members
         """).fetchall()
 
-
         linked = []
         not_found = []
         used_discord_ids = set()
-
 
         for db_member in members_db:
 
             found_member = None
 
+            # -------------------------------------------------
+            # 1. Már meglévő Discord ID alapján
+            # -------------------------------------------------
 
             if db_member["discord_user_id"]:
 
                 try:
 
-                    found_member = guild.get_member(
-                        int(
-                            db_member[
-                                "discord_user_id"
-                            ]
-                        )
+                    discord_id = int(
+                        db_member[
+                            "discord_user_id"
+                        ]
                     )
+
+                    for discord_member in discord_members:
+
+                        if discord_member.id == discord_id:
+
+                            found_member = discord_member
+
+                            break
 
                 except (
                     ValueError,
                     TypeError
                 ):
 
-                    found_member = None
+                    pass
 
+            # -------------------------------------------------
+            # 2. Mentett Discord név alapján
+            # -------------------------------------------------
 
             if (
                 not found_member
                 and db_member["discord_username"]
             ):
 
-                saved_discord_name = normalize_name(
+                saved_name = normalize_name(
                     db_member[
                         "discord_username"
                     ]
                 )
 
-
-                for discord_member in guild.members:
-
-                    if discord_member.bot:
-
-                        continue
-
+                for discord_member in discord_members:
 
                     possible_names = [
 
                         discord_member.name,
+
                         discord_member.display_name,
-                        discord_member.global_name,
-                        str(discord_member)
+
+                        getattr(
+                            discord_member,
+                            "global_name",
+                            None
+                        )
 
                     ]
 
+                    if any(
 
-                    for possible_name in possible_names:
+                        normalize_name(name)
+                        == saved_name
 
-                        if (
-                            normalize_name(
-                                possible_name
-                            )
-                            == saved_discord_name
-                        ):
+                        for name in possible_names
 
-                            found_member = discord_member
+                        if name
 
-                            break
+                    ):
 
-
-                    if found_member:
+                        found_member = discord_member
 
                         break
 
+            # -------------------------------------------------
+            # 3. NÉVSOR név alapján
+            # -------------------------------------------------
 
             if not found_member:
 
-                for discord_member in guild.members:
+                for discord_member in discord_members:
 
-                    if discord_member.bot:
+                    if discord_member.id in used_discord_ids:
 
                         continue
-
 
                     if names_match(
                         db_member["name"],
@@ -1703,13 +1644,15 @@ async def sync_discord_members():
 
                         break
 
+            # -------------------------------------------------
+            # TALÁLAT
+            # -------------------------------------------------
 
             if found_member:
 
                 used_discord_ids.add(
                     found_member.id
                 )
-
 
                 conn.execute("""
                     UPDATE members
@@ -1725,7 +1668,6 @@ async def sync_discord_members():
                     db_member["id"]
                 ))
 
-
                 linked.append({
 
                     "member_id":
@@ -1739,7 +1681,6 @@ async def sync_discord_members():
 
                 })
 
-
             else:
 
                 not_found.append({
@@ -1752,21 +1693,16 @@ async def sync_discord_members():
 
                 })
 
-
         conn.commit()
-
 
         discord_only = []
 
+        for discord_member in discord_members:
 
-        for discord_member in guild.members:
-
-            if discord_member.bot:
-
-                continue
-
-
-            if discord_member.id not in used_discord_ids:
+            if (
+                discord_member.id
+                not in used_discord_ids
+            ):
 
                 discord_only.append({
 
@@ -1781,17 +1717,12 @@ async def sync_discord_members():
 
                 })
 
-
         return {
 
             "success": True,
 
             "total":
-                len([
-                    m
-                    for m in guild.members
-                    if not m.bot
-                ]),
+                len(discord_members),
 
             "matched":
                 len(linked),
@@ -1810,6 +1741,22 @@ async def sync_discord_members():
 
         }
 
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            f"❌ Discord szinkron hiba: {repr(e)}"
+        )
+
+        return {
+
+            "success": False,
+
+            "error":
+                f"Discord szinkron hiba: {repr(e)}"
+
+        }
 
     finally:
 
@@ -1817,7 +1764,7 @@ async def sync_discord_members():
 
 
 # =========================================================
-# API - DISCORD ÖSSZEVETÉS
+# API - DISCORD SYNC
 # =========================================================
 
 @app.route(
@@ -1827,7 +1774,6 @@ async def sync_discord_members():
 def discord_sync():
 
     global discord_loop
-
 
     if not require_login():
 
@@ -1840,7 +1786,6 @@ def discord_sync():
 
         }), 401
 
-
     if not DISCORD_TOKEN:
 
         return jsonify({
@@ -1852,6 +1797,16 @@ def discord_sync():
 
         }), 503
 
+    if not DISCORD_GUILD_ID:
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                "DISCORD_GUILD_ID nincs beállítva."
+
+        }), 503
 
     if not discord_started:
 
@@ -1864,7 +1819,6 @@ def discord_sync():
 
         }), 503
 
-
     if not bot.is_ready():
 
         return jsonify({
@@ -1875,7 +1829,6 @@ def discord_sync():
                 "A Discord bot még nincs csatlakozva."
 
         }), 503
-
 
     if discord_loop is None:
 
@@ -1888,7 +1841,6 @@ def discord_sync():
 
         }), 503
 
-
     try:
 
         future = asyncio.run_coroutine_threadsafe(
@@ -1896,23 +1848,40 @@ def discord_sync():
             discord_loop
         )
 
-
         result = future.result(
-            timeout=30
+            timeout=90
         )
 
+        if not result.get("success"):
+
+            return jsonify(
+                result
+            ), 500
 
         return jsonify(
             result
         )
 
+    except TimeoutError:
+
+        print(
+            "❌ Discord sync időtúllépés."
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                "A Discord szerver válasza túl sokáig tartott."
+
+        }), 504
 
     except Exception as e:
 
         print(
-            f"Discord sync hiba: {repr(e)}"
+            f"❌ Discord sync hiba: {repr(e)}"
         )
-
 
         return jsonify({
 
@@ -1939,13 +1908,11 @@ def discord_unmatched():
             "members": []
         })
 
-
     if not bot.is_ready():
 
         return jsonify({
             "members": []
         })
-
 
     if not DISCORD_GUILD_ID:
 
@@ -1953,113 +1920,127 @@ def discord_unmatched():
             "members": []
         })
 
-
-    try:
-
-        guild_id = int(
-            DISCORD_GUILD_ID
-        )
-
-    except ValueError:
+    if discord_loop is None:
 
         return jsonify({
             "members": []
         })
 
+    async def get_unmatched():
 
-    guild = bot.get_guild(
-        guild_id
-    )
+        try:
 
-
-    if not guild:
-
-        return jsonify({
-            "members": []
-        })
-
-
-    conn = get_connection()
-
-
-    try:
-
-        db_members = conn.execute("""
-            SELECT
-                name,
-                discord_user_id,
-                discord_username
-
-            FROM members
-        """).fetchall()
-
-    finally:
-
-        conn.close()
-
-
-    used_ids = set()
-
-
-    for db_member in db_members:
-
-        if db_member["discord_user_id"]:
-
-            try:
-
-                used_ids.add(
-                    int(
-                        db_member[
-                            "discord_user_id"
-                        ]
-                    )
-                )
-
-                continue
-
-            except (
-                ValueError,
-                TypeError
-            ):
-
-                pass
-
-
-        if db_member["discord_username"]:
-
-            saved_name = normalize_name(
-                db_member[
-                    "discord_username"
-                ]
+            guild_id = int(
+                DISCORD_GUILD_ID
             )
 
+        except (
+            ValueError,
+            TypeError
+        ):
 
-            for discord_member in guild.members:
+            return []
 
-                if discord_member.bot:
+        guild = bot.get_guild(
+            guild_id
+        )
+
+        if not guild:
+
+            return []
+
+        discord_members = await get_discord_members(
+            guild
+        )
+
+        conn = get_connection()
+
+        try:
+
+            db_members = conn.execute("""
+                SELECT
+                    name,
+                    discord_user_id,
+                    discord_username
+
+                FROM members
+            """).fetchall()
+
+        finally:
+
+            conn.close()
+
+        used_ids = set()
+
+        for db_member in db_members:
+
+            if db_member["discord_user_id"]:
+
+                try:
+
+                    used_ids.add(
+                        int(
+                            db_member[
+                                "discord_user_id"
+                            ]
+                        )
+                    )
 
                     continue
 
+                except (
+                    ValueError,
+                    TypeError
+                ):
 
-                possible_names = [
+                    pass
 
-                    discord_member.name,
-                    discord_member.display_name,
-                    discord_member.global_name,
-                    str(discord_member)
+            if db_member["discord_username"]:
 
-                ]
+                saved_name = normalize_name(
+                    db_member[
+                        "discord_username"
+                    ]
+                )
 
+                for discord_member in discord_members:
 
-                if any(
+                    possible_names = [
 
-                    normalize_name(x)
-                    == saved_name
+                        discord_member.name,
 
-                    for x in possible_names
+                        discord_member.display_name,
 
-                    if x
+                        getattr(
+                            discord_member,
+                            "global_name",
+                            None
+                        )
 
+                    ]
+
+                    if any(
+
+                        normalize_name(x)
+                        == saved_name
+
+                        for x in possible_names
+
+                        if x
+
+                    ):
+
+                        used_ids.add(
+                            discord_member.id
+                        )
+
+                        break
+
+            for discord_member in discord_members:
+
+                if names_match(
+                    db_member["name"],
+                    discord_member
                 ):
 
                     used_ids.add(
@@ -2068,58 +2049,54 @@ def discord_unmatched():
 
                     break
 
+        result = []
 
-        for discord_member in guild.members:
+        for discord_member in discord_members:
 
-            if discord_member.bot:
-
-                continue
-
-
-            if names_match(
-                db_member["name"],
-                discord_member
+            if (
+                discord_member.id
+                not in used_ids
             ):
 
-                used_ids.add(
-                    discord_member.id
-                )
+                result.append({
 
-                break
+                    "id":
+                        str(discord_member.id),
 
+                    "username":
+                        discord_member.name,
 
-    members = []
+                    "display_name":
+                        discord_member.display_name
 
+                })
 
-    for discord_member in guild.members:
+        return result
 
-        if discord_member.bot:
+    try:
 
-            continue
+        future = asyncio.run_coroutine_threadsafe(
+            get_unmatched(),
+            discord_loop
+        )
 
+        members = future.result(
+            timeout=90
+        )
 
-        if discord_member.id not in used_ids:
+        return jsonify({
+            "members": members
+        })
 
-            members.append({
+    except Exception as e:
 
-                "id":
-                    str(discord_member.id),
+        print(
+            f"❌ Discord unmatched hiba: {repr(e)}"
+        )
 
-                "username":
-                    discord_member.name,
-
-                "display_name":
-                    discord_member.display_name
-
-            })
-
-
-    return jsonify({
-
-        "members":
-            members
-
-    })
+        return jsonify({
+            "members": []
+        })
 
 
 # =========================================================
@@ -2130,7 +2107,6 @@ def run_discord_bot():
 
     global discord_loop
 
-
     if not DISCORD_TOKEN:
 
         print(
@@ -2139,24 +2115,19 @@ def run_discord_bot():
 
         return
 
-
     async def start_bot():
 
         global discord_loop
 
-
         discord_loop = asyncio.get_running_loop()
-
 
         print(
             "🚀 Discord bot csatlakoztatása..."
         )
 
-
         await bot.start(
             DISCORD_TOKEN
         )
-
 
     try:
 
@@ -2175,11 +2146,9 @@ def start_discord_bot():
 
     global discord_started
 
-
     if discord_started:
 
         return
-
 
     if not DISCORD_TOKEN:
 
@@ -2189,26 +2158,22 @@ def start_discord_bot():
 
         return
 
-
     discord_started = True
-
 
     print(
         "🚀 Discord bot indítása..."
     )
-
 
     discord_thread = threading.Thread(
         target=run_discord_bot,
         daemon=True
     )
 
-
     discord_thread.start()
 
 
 # =========================================================
-# ALKALMAZÁS ELŐKÉSZÍTÉSE
+# ALKALMAZÁS INDÍTÁS ELŐTT
 # =========================================================
 
 init_db()
@@ -2229,8 +2194,8 @@ if __name__ == "__main__":
         )
     )
 
-
     app.run(
         host="0.0.0.0",
-        port=port
+        port=port,
+        debug=False
     )
