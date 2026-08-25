@@ -66,12 +66,15 @@ def require_login():
 
 def current_month():
 
-    return datetime.now().strftime("%Y-%m")
+    return datetime.now().strftime(
+        "%Y-%m"
+    )
 
 
 def normalize_month(value):
 
     if not value:
+
         return current_month()
 
     try:
@@ -276,7 +279,9 @@ def init_db():
                 payment_month = datetime.strptime(
                     member["payment_date"],
                     "%Y-%m-%d"
-                ).strftime("%Y-%m")
+                ).strftime(
+                    "%Y-%m"
+                )
 
             except ValueError:
 
@@ -320,7 +325,10 @@ def init_db():
             """, (
                 member["id"],
                 payment_month,
-                int(member["payment_status"] or 0),
+                int(
+                    member["payment_status"]
+                    or 0
+                ),
                 member["payment_date"],
                 member["created_at"] or now,
                 now
@@ -379,7 +387,9 @@ def login():
 # KIJELENTKEZÉS
 # =========================================================
 
-@app.route("/logout")
+@app.route(
+    "/logout"
+)
 def logout():
 
     session.clear()
@@ -438,7 +448,9 @@ def index():
             ON p.member_id = m.id
     """
 
-    params = [selected_month]
+    params = [
+        selected_month
+    ]
 
     if q:
 
@@ -543,7 +555,9 @@ def add_member():
 
     try:
 
-        status = int(payment_status)
+        status = int(
+            payment_status
+        )
 
     except (
         ValueError,
@@ -678,7 +692,9 @@ def edit_member(member_id):
 
     try:
 
-        status = int(payment_status)
+        status = int(
+            payment_status
+        )
 
     except (
         ValueError,
@@ -904,7 +920,10 @@ def member_detail(member_id):
             member["discord_username"],
 
         "payment_status":
-            int(member["payment_status"] or 0),
+            int(
+                member["payment_status"]
+                or 0
+            ),
 
         "payment_date":
             member["payment_date"],
@@ -913,7 +932,10 @@ def member_detail(member_id):
             selected_month,
 
         "total_points":
-            int(member["total_points"] or 0),
+            int(
+                member["total_points"]
+                or 0
+            ),
 
         "logged_in":
             is_logged_in(),
@@ -928,7 +950,7 @@ def member_detail(member_id):
 
 
 # =========================================================
-# HIBAPONT
+# HIBAPONT HOZZÁADÁSA
 # =========================================================
 
 @app.route(
@@ -962,7 +984,9 @@ def add_penalty(member_id):
 
     try:
 
-        points = int(points)
+        points = int(
+            points
+        )
 
     except ValueError:
 
@@ -1179,8 +1203,9 @@ discord_started = False
 
 intents = discord.Intents.default()
 
-# Ezeknek a Discord Developer Portalban is
-# engedélyezve kell lenniük.
+# Discord Developer Portalban is engedélyezni kell:
+# SERVER MEMBERS INTENT
+# MESSAGE CONTENT INTENT
 
 intents.members = True
 intents.message_content = True
@@ -1210,7 +1235,8 @@ async def on_ready():
     if DISCORD_GUILD_ID:
 
         print(
-            f"🏠 Discord szerver ID: {DISCORD_GUILD_ID}"
+            f"🏠 Discord szerver ID: "
+            f"{DISCORD_GUILD_ID}"
         )
 
     else:
@@ -1235,7 +1261,7 @@ async def link_character(
     if not character_id:
 
         await ctx.send(
-            "❌ Használat: `/link KARAKTER_ID`"
+            "❌ Használat: /link KARAKTER_ID"
         )
 
         return
@@ -1327,7 +1353,7 @@ async def link_character(
 
 
 # =========================================================
-# NÉV NORMALIZÁLÁS
+# DISCORD NÉV NORMALIZÁLÁS
 # =========================================================
 
 def normalize_name(value):
@@ -1336,7 +1362,10 @@ def normalize_name(value):
 
         return ""
 
-    value = str(value)
+    value = str(
+        value
+    )
+
     value = value.strip()
     value = value.lstrip("@")
     value = value.casefold()
@@ -1349,7 +1378,9 @@ def normalize_name(value):
     value = "".join(
         char
         for char in value
-        if not unicodedata.combining(char)
+        if not unicodedata.combining(
+            char
+        )
     )
 
     value = re.sub(
@@ -1362,7 +1393,7 @@ def normalize_name(value):
 
 
 # =========================================================
-# NÉV EGYEZÉS
+# DISCORD NÉV EGYEZÉS
 # =========================================================
 
 def names_match(
@@ -1398,7 +1429,9 @@ def names_match(
             None
         ),
 
-        str(discord_member)
+        str(
+            discord_member
+        )
 
     ]
 
@@ -1423,23 +1456,13 @@ def names_match(
 
 
 # =========================================================
-# DISCORD TAGOK LEKÉRÉSE
+# TELJES DISCORD TAGLISTA LEKÉRÉSE
 # =========================================================
 
 async def get_discord_members(guild):
 
-    members = [
-        member
-        for member in guild.members
-        if not member.bot
-    ]
-
-    if members:
-
-        return members
-
     print(
-        "📡 Discord taglista nincs cache-ben, lekérés..."
+        "📡 Teljes Discord taglista lekérése..."
     )
 
     fetched_members = []
@@ -1450,19 +1473,48 @@ async def get_discord_members(guild):
             limit=None
         ):
 
-            if not member.bot:
+            if member.bot:
 
-                fetched_members.append(
-                    member
-                )
+                continue
+
+            fetched_members.append(
+                member
+            )
+
+        print(
+            f"✅ Lekért Discord tagok száma: "
+            f"{len(fetched_members)}"
+        )
+
+        return fetched_members
 
     except Exception as e:
 
         print(
-            f"❌ Discord taglista lekérési hiba: {repr(e)}"
+            f"❌ Discord taglista lekérési hiba: "
+            f"{repr(e)}"
         )
 
-    return fetched_members
+        print(
+            "⚠️ Cache-ben lévő Discord tagok használata..."
+        )
+
+        cached_members = [
+
+            member
+
+            for member in guild.members
+
+            if not member.bot
+
+        ]
+
+        print(
+            f"⚠️ Cache-ben lévő tagok száma: "
+            f"{len(cached_members)}"
+        )
+
+        return cached_members
 
 
 # =========================================================
@@ -1474,8 +1526,12 @@ async def sync_discord_members():
     if not DISCORD_GUILD_ID:
 
         return {
+
             "success": False,
-            "error": "DISCORD_GUILD_ID nincs beállítva."
+
+            "error":
+                "DISCORD_GUILD_ID nincs beállítva."
+
         }
 
     try:
@@ -1490,8 +1546,12 @@ async def sync_discord_members():
     ):
 
         return {
+
             "success": False,
-            "error": "Hibás DISCORD_GUILD_ID."
+
+            "error":
+                "Hibás DISCORD_GUILD_ID."
+
         }
 
     guild = bot.get_guild(
@@ -1500,19 +1560,14 @@ async def sync_discord_members():
 
     if not guild:
 
-        try:
+        return {
 
-            guild = await bot.fetch_guild(
-                guild_id
-            )
+            "success": False,
 
-        except Exception as e:
+            "error":
+                "A Discord szerver nem található."
 
-            return {
-                "success": False,
-                "error":
-                    f"A Discord szerver nem érhető el: {repr(e)}"
-            }
+        }
 
     discord_members = await get_discord_members(
         guild
@@ -1521,9 +1576,12 @@ async def sync_discord_members():
     if not discord_members:
 
         return {
+
             "success": False,
+
             "error":
                 "Nem sikerült lekérni a Discord szerver taglistáját."
+
         }
 
     conn = get_connection()
@@ -1541,16 +1599,18 @@ async def sync_discord_members():
         """).fetchall()
 
         linked = []
+
         not_found = []
+
         used_discord_ids = set()
 
         for db_member in members_db:
 
             found_member = None
 
-            # -------------------------------------------------
-            # 1. Már meglévő Discord ID alapján
-            # -------------------------------------------------
+            # =================================================
+            # 1. KORÁBBAN ELMENTETT DISCORD ID
+            # =================================================
 
             if db_member["discord_user_id"]:
 
@@ -1564,7 +1624,10 @@ async def sync_discord_members():
 
                     for discord_member in discord_members:
 
-                        if discord_member.id == discord_id:
+                        if (
+                            discord_member.id
+                            == discord_id
+                        ):
 
                             found_member = discord_member
 
@@ -1577,9 +1640,9 @@ async def sync_discord_members():
 
                     pass
 
-            # -------------------------------------------------
-            # 2. Mentett Discord név alapján
-            # -------------------------------------------------
+            # =================================================
+            # 2. ELMENTETT DISCORD NÉV
+            # =================================================
 
             if (
                 not found_member
@@ -1593,6 +1656,13 @@ async def sync_discord_members():
                 )
 
                 for discord_member in discord_members:
+
+                    if (
+                        discord_member.id
+                        in used_discord_ids
+                    ):
+
+                        continue
 
                     possible_names = [
 
@@ -1608,30 +1678,39 @@ async def sync_discord_members():
 
                     ]
 
-                    if any(
+                    for possible_name in possible_names:
 
-                        normalize_name(name)
-                        == saved_name
+                        if not possible_name:
 
-                        for name in possible_names
+                            continue
 
-                        if name
+                        if (
+                            normalize_name(
+                                possible_name
+                            )
+                            == saved_name
+                        ):
 
-                    ):
+                            found_member = discord_member
 
-                        found_member = discord_member
+                            break
+
+                    if found_member:
 
                         break
 
-            # -------------------------------------------------
-            # 3. NÉVSOR név alapján
-            # -------------------------------------------------
+            # =================================================
+            # 3. NÉVSORBAN LÉVŐ NÉV ALAPJÁN
+            # =================================================
 
             if not found_member:
 
                 for discord_member in discord_members:
 
-                    if discord_member.id in used_discord_ids:
+                    if (
+                        discord_member.id
+                        in used_discord_ids
+                    ):
 
                         continue
 
@@ -1644,9 +1723,9 @@ async def sync_discord_members():
 
                         break
 
-            # -------------------------------------------------
+            # =================================================
             # TALÁLAT
-            # -------------------------------------------------
+            # =================================================
 
             if found_member:
 
@@ -1663,7 +1742,9 @@ async def sync_discord_members():
 
                     WHERE id = ?
                 """, (
-                    str(found_member.id),
+                    str(
+                        found_member.id
+                    ),
                     found_member.display_name,
                     db_member["id"]
                 ))
@@ -1707,7 +1788,9 @@ async def sync_discord_members():
                 discord_only.append({
 
                     "id":
-                        str(discord_member.id),
+                        str(
+                            discord_member.id
+                        ),
 
                     "username":
                         discord_member.name,
@@ -1722,13 +1805,19 @@ async def sync_discord_members():
             "success": True,
 
             "total":
-                len(discord_members),
+                len(
+                    discord_members
+                ),
 
             "matched":
-                len(linked),
+                len(
+                    linked
+                ),
 
             "unmatched":
-                len(discord_only),
+                len(
+                    discord_only
+                ),
 
             "linked":
                 linked,
@@ -1746,7 +1835,8 @@ async def sync_discord_members():
         conn.rollback()
 
         print(
-            f"❌ Discord szinkron hiba: {repr(e)}"
+            f"❌ Discord szinkron hiba: "
+            f"{repr(e)}"
         )
 
         return {
@@ -1754,7 +1844,8 @@ async def sync_discord_members():
             "success": False,
 
             "error":
-                f"Discord szinkron hiba: {repr(e)}"
+                f"Discord szinkron hiba: "
+                f"{repr(e)}"
 
         }
 
@@ -1764,7 +1855,7 @@ async def sync_discord_members():
 
 
 # =========================================================
-# API - DISCORD SYNC
+# API - DISCORD SZINKRON
 # =========================================================
 
 @app.route(
@@ -1852,7 +1943,9 @@ def discord_sync():
             timeout=90
         )
 
-        if not result.get("success"):
+        if not result.get(
+            "success"
+        ):
 
             return jsonify(
                 result
@@ -1880,7 +1973,8 @@ def discord_sync():
     except Exception as e:
 
         print(
-            f"❌ Discord sync hiba: {repr(e)}"
+            f"❌ Discord sync hiba: "
+            f"{repr(e)}"
         )
 
         return jsonify({
@@ -1888,7 +1982,8 @@ def discord_sync():
             "success": False,
 
             "error":
-                f"Discord sync hiba: {repr(e)}"
+                f"Discord sync hiba: "
+                f"{repr(e)}"
 
         }), 500
 
@@ -1905,25 +2000,33 @@ def discord_unmatched():
     if not require_login():
 
         return jsonify({
+
             "members": []
+
         })
 
     if not bot.is_ready():
 
         return jsonify({
+
             "members": []
+
         })
 
     if not DISCORD_GUILD_ID:
 
         return jsonify({
+
             "members": []
+
         })
 
     if discord_loop is None:
 
         return jsonify({
+
             "members": []
+
         })
 
     async def get_unmatched():
@@ -1948,6 +2051,8 @@ def discord_unmatched():
         if not guild:
 
             return []
+
+        # TELJES TAGLISTA LEKÉRÉSE
 
         discord_members = await get_discord_members(
             guild
@@ -1974,19 +2079,30 @@ def discord_unmatched():
 
         for db_member in db_members:
 
+            found_member = None
+
+            # 1. Discord ID
+
             if db_member["discord_user_id"]:
 
                 try:
 
-                    used_ids.add(
-                        int(
-                            db_member[
-                                "discord_user_id"
-                            ]
-                        )
+                    discord_id = int(
+                        db_member[
+                            "discord_user_id"
+                        ]
                     )
 
-                    continue
+                    for discord_member in discord_members:
+
+                        if (
+                            discord_member.id
+                            == discord_id
+                        ):
+
+                            found_member = discord_member
+
+                            break
 
                 except (
                     ValueError,
@@ -1995,7 +2111,12 @@ def discord_unmatched():
 
                     pass
 
-            if db_member["discord_username"]:
+            # 2. Mentett Discord név
+
+            if (
+                not found_member
+                and db_member["discord_username"]
+            ):
 
                 saved_name = normalize_name(
                     db_member[
@@ -2021,7 +2142,9 @@ def discord_unmatched():
 
                     if any(
 
-                        normalize_name(x)
+                        normalize_name(
+                            x
+                        )
                         == saved_name
 
                         for x in possible_names
@@ -2030,24 +2153,30 @@ def discord_unmatched():
 
                     ):
 
-                        used_ids.add(
-                            discord_member.id
-                        )
+                        found_member = discord_member
 
                         break
 
-            for discord_member in discord_members:
+            # 3. Név alapján
 
-                if names_match(
-                    db_member["name"],
-                    discord_member
-                ):
+            if not found_member:
 
-                    used_ids.add(
-                        discord_member.id
-                    )
+                for discord_member in discord_members:
 
-                    break
+                    if names_match(
+                        db_member["name"],
+                        discord_member
+                    ):
+
+                        found_member = discord_member
+
+                        break
+
+            if found_member:
+
+                used_ids.add(
+                    found_member.id
+                )
 
         result = []
 
@@ -2061,7 +2190,9 @@ def discord_unmatched():
                 result.append({
 
                     "id":
-                        str(discord_member.id),
+                        str(
+                            discord_member.id
+                        ),
 
                     "username":
                         discord_member.name,
@@ -2085,17 +2216,35 @@ def discord_unmatched():
         )
 
         return jsonify({
-            "members": members
+
+            "members":
+                members
+
+        })
+
+    except TimeoutError:
+
+        print(
+            "❌ Discord unmatched időtúllépés."
+        )
+
+        return jsonify({
+
+            "members": []
+
         })
 
     except Exception as e:
 
         print(
-            f"❌ Discord unmatched hiba: {repr(e)}"
+            f"❌ Discord unmatched hiba: "
+            f"{repr(e)}"
         )
 
         return jsonify({
+
             "members": []
+
         })
 
 
@@ -2138,7 +2287,8 @@ def run_discord_bot():
     except Exception as e:
 
         print(
-            f"❌ Discord bot hiba: {repr(e)}"
+            f"❌ Discord bot hiba: "
+            f"{repr(e)}"
         )
 
 
