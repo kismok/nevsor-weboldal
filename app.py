@@ -1288,17 +1288,13 @@ DISCORD_GUILD_ID = os.environ.get(
 )
 
 
-# A Discord bot saját eseményhurka.
-# Erre van szükség ahhoz, hogy a Flask threadből
-# biztonságosan tudjunk coroutine-okat indítani.
-
 discord_loop = None
+discord_started = False
 
 
 intents = discord.Intents.default()
 
 intents.message_content = True
-
 intents.members = True
 
 
@@ -1316,8 +1312,7 @@ async def on_ready():
     discord_loop = asyncio.get_running_loop()
 
     print(
-        f"Discord bot elindult: "
-        f"{bot.user}"
+        f"Discord bot elindult: {bot.user}"
     )
 
 
@@ -1450,16 +1445,9 @@ def normalize_name(value):
         return ""
 
 
-    value = str(
-        value
-    )
-
+    value = str(value)
     value = value.strip()
-
-    value = value.lstrip(
-        "@"
-    )
-
+    value = value.lstrip("@")
     value = value.casefold()
 
     value = unicodedata.normalize(
@@ -1560,11 +1548,8 @@ async def sync_discord_members():
     if not DISCORD_GUILD_ID:
 
         return {
-
             "success": False,
-
-            "error":
-                "DISCORD_GUILD_ID nincs beállítva."
+            "error": "DISCORD_GUILD_ID nincs beállítva."
         }
 
 
@@ -1577,11 +1562,8 @@ async def sync_discord_members():
     except ValueError:
 
         return {
-
             "success": False,
-
-            "error":
-                "Hibás DISCORD_GUILD_ID."
+            "error": "Hibás DISCORD_GUILD_ID."
         }
 
 
@@ -1593,11 +1575,8 @@ async def sync_discord_members():
     if not guild:
 
         return {
-
             "success": False,
-
-            "error":
-                "A Discord szerver nem található."
+            "error": "A Discord szerver nem található."
         }
 
 
@@ -1608,92 +1587,116 @@ async def sync_discord_members():
     except Exception as e:
 
         print(
-            f"Discord member chunk hiba: {e}"
+            f"Discord member chunk hiba: {repr(e)}"
         )
 
 
     conn = get_connection()
 
 
-    members_db = conn.execute("""
-        SELECT
-            id,
-            name,
-            discord_user_id,
-            discord_username
+    try:
 
-        FROM members
-    """).fetchall()
+        members_db = conn.execute("""
+            SELECT
+                id,
+                name,
+                discord_user_id,
+                discord_username
 
-
-    linked = []
-
-    not_found = []
-
-    used_discord_ids = set()
+            FROM members
+        """).fetchall()
 
 
-    for db_member in members_db:
+        linked = []
+        not_found = []
+        used_discord_ids = set()
 
-        found_member = None
+
+        for db_member in members_db:
+
+            found_member = None
 
 
-        if db_member["discord_user_id"]:
+            if db_member["discord_user_id"]:
 
-            try:
+                try:
 
-                found_member = guild.get_member(
-                    int(
-                        db_member[
-                            "discord_user_id"
-                        ]
+                    found_member = guild.get_member(
+                        int(
+                            db_member[
+                                "discord_user_id"
+                            ]
+                        )
                     )
-                )
 
-            except (
-                ValueError,
-                TypeError
+                except (
+                    ValueError,
+                    TypeError
+                ):
+
+                    found_member = None
+
+
+            if (
+                not found_member
+                and db_member["discord_username"]
             ):
 
-                found_member = None
+                saved_discord_name = normalize_name(
+                    db_member[
+                        "discord_username"
+                    ]
+                )
 
 
-        if (
-            not found_member
-            and db_member["discord_username"]
-        ):
+                for discord_member in guild.members:
 
-            saved_discord_name = normalize_name(
-                db_member[
-                    "discord_username"
-                ]
-            )
+                    if discord_member.bot:
+
+                        continue
 
 
-            for discord_member in guild.members:
+                    possible_names = [
 
-                if discord_member.bot:
+                        discord_member.name,
+                        discord_member.display_name,
+                        discord_member.global_name,
+                        str(discord_member)
 
-                    continue
-
-
-                possible_names = [
-
-                    discord_member.name,
-                    discord_member.display_name,
-                    discord_member.global_name,
-                    str(discord_member)
-
-                ]
+                    ]
 
 
-                for possible_name in possible_names:
+                    for possible_name in possible_names:
 
-                    if (
-                        normalize_name(
-                            possible_name
-                        )
-                        == saved_discord_name
+                        if (
+                            normalize_name(
+                                possible_name
+                            )
+                            == saved_discord_name
+                        ):
+
+                            found_member = discord_member
+
+                            break
+
+
+                    if found_member:
+
+                        break
+
+
+            if not found_member:
+
+                for discord_member in guild.members:
+
+                    if discord_member.bot:
+
+                        continue
+
+
+                    if names_match(
+                        db_member["name"],
+                        discord_member
                     ):
 
                         found_member = discord_member
@@ -1701,137 +1704,116 @@ async def sync_discord_members():
                         break
 
 
-                if found_member:
+            if found_member:
 
-                    break
-
-
-        if not found_member:
-
-            for discord_member in guild.members:
-
-                if discord_member.bot:
-
-                    continue
+                used_discord_ids.add(
+                    found_member.id
+                )
 
 
-                if names_match(
-                    db_member["name"],
-                    discord_member
-                ):
+                conn.execute("""
+                    UPDATE members
 
-                    found_member = discord_member
+                    SET
+                        discord_user_id = ?,
+                        discord_username = ?
 
-                    break
-
-
-        if found_member:
-
-            used_discord_ids.add(
-                found_member.id
-            )
+                    WHERE id = ?
+                """, (
+                    str(found_member.id),
+                    found_member.display_name,
+                    db_member["id"]
+                ))
 
 
-            conn.execute("""
-                UPDATE members
+                linked.append({
 
-                SET
-                    discord_user_id = ?,
-                    discord_username = ?
+                    "member_id":
+                        db_member["id"],
 
-                WHERE id = ?
-            """, (
-                str(found_member.id),
-                found_member.display_name,
-                db_member["id"]
-            ))
+                    "name":
+                        db_member["name"],
 
+                    "discord":
+                        found_member.display_name
 
-            linked.append({
-
-                "member_id":
-                    db_member["id"],
-
-                "name":
-                    db_member["name"],
-
-                "discord":
-                    found_member.display_name
-
-            })
+                })
 
 
-        else:
+            else:
 
-            not_found.append({
+                not_found.append({
 
-                "member_id":
-                    db_member["id"],
+                    "member_id":
+                        db_member["id"],
 
-                "name":
-                    db_member["name"]
+                    "name":
+                        db_member["name"]
 
-            })
-
-
-    conn.commit()
-
-    conn.close()
+                })
 
 
-    discord_only = []
+        conn.commit()
 
 
-    for discord_member in guild.members:
-
-        if discord_member.bot:
-
-            continue
+        discord_only = []
 
 
-        if discord_member.id not in used_discord_ids:
+        for discord_member in guild.members:
 
-            discord_only.append({
+            if discord_member.bot:
 
-                "id":
-                    str(discord_member.id),
-
-                "username":
-                    discord_member.name,
-
-                "display_name":
-                    discord_member.display_name
-
-            })
+                continue
 
 
-    return {
+            if discord_member.id not in used_discord_ids:
 
-        "success": True,
+                discord_only.append({
 
-        "total":
-            len([
-                m
-                for m in guild.members
-                if not m.bot
-            ]),
+                    "id":
+                        str(discord_member.id),
 
-        "matched":
-            len(linked),
+                    "username":
+                        discord_member.name,
 
-        "unmatched":
-            len(discord_only),
+                    "display_name":
+                        discord_member.display_name
 
-        "linked":
-            linked,
+                })
 
-        "not_found":
-            not_found,
 
-        "discord_only":
-            discord_only
+        return {
 
-    }
+            "success": True,
+
+            "total":
+                len([
+                    m
+                    for m in guild.members
+                    if not m.bot
+                ]),
+
+            "matched":
+                len(linked),
+
+            "unmatched":
+                len(discord_only),
+
+            "linked":
+                linked,
+
+            "not_found":
+                not_found,
+
+            "discord_only":
+                discord_only
+
+        }
+
+
+    finally:
+
+        conn.close()
 
 
 # =========================================================
@@ -1859,6 +1841,30 @@ def discord_sync():
         }), 401
 
 
+    if not DISCORD_TOKEN:
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                "DISCORD_TOKEN nincs beállítva."
+
+        }), 503
+
+
+    if not discord_started:
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                "A Discord bot még nem indult el."
+
+        }), 503
+
+
     if not bot.is_ready():
 
         return jsonify({
@@ -1883,17 +1889,18 @@ def discord_sync():
         }), 503
 
 
-    future = asyncio.run_coroutine_threadsafe(
-        sync_discord_members(),
-        discord_loop
-    )
-
-
     try:
+
+        future = asyncio.run_coroutine_threadsafe(
+            sync_discord_members(),
+            discord_loop
+        )
+
 
         result = future.result(
             timeout=30
         )
+
 
         return jsonify(
             result
@@ -1902,12 +1909,17 @@ def discord_sync():
 
     except Exception as e:
 
+        print(
+            f"Discord sync hiba: {repr(e)}"
+        )
+
+
         return jsonify({
 
             "success": False,
 
             "error":
-                str(e)
+                f"Discord sync hiba: {repr(e)}"
 
         }), 500
 
@@ -1970,17 +1982,20 @@ def discord_unmatched():
     conn = get_connection()
 
 
-    db_members = conn.execute("""
-        SELECT
-            name,
-            discord_user_id,
-            discord_username
+    try:
 
-        FROM members
-    """).fetchall()
+        db_members = conn.execute("""
+            SELECT
+                name,
+                discord_user_id,
+                discord_username
 
+            FROM members
+        """).fetchall()
 
-    conn.close()
+    finally:
+
+        conn.close()
 
 
     used_ids = set()
@@ -2119,7 +2134,7 @@ def run_discord_bot():
     if not DISCORD_TOKEN:
 
         print(
-            "DISCORD_TOKEN nincs beállítva!"
+            "❌ DISCORD_TOKEN nincs beállítva!"
         )
 
         return
@@ -2133,23 +2148,54 @@ def run_discord_bot():
         discord_loop = asyncio.get_running_loop()
 
 
+        print(
+            "🚀 Discord bot csatlakoztatása..."
+        )
+
+
         await bot.start(
             DISCORD_TOKEN
         )
 
 
-    asyncio.run(
-        start_bot()
+    try:
+
+        asyncio.run(
+            start_bot()
+        )
+
+    except Exception as e:
+
+        print(
+            f"❌ Discord bot hiba: {repr(e)}"
+        )
+
+
+def start_discord_bot():
+
+    global discord_started
+
+
+    if discord_started:
+
+        return
+
+
+    if not DISCORD_TOKEN:
+
+        print(
+            "❌ DISCORD_TOKEN nincs beállítva!"
+        )
+
+        return
+
+
+    discord_started = True
+
+
+    print(
+        "🚀 Discord bot indítása..."
     )
-
-
-# =========================================================
-# PROGRAM INDÍTÁSA
-# =========================================================
-
-if __name__ == "__main__":
-
-    init_db()
 
 
     discord_thread = threading.Thread(
@@ -2157,8 +2203,24 @@ if __name__ == "__main__":
         daemon=True
     )
 
+
     discord_thread.start()
 
+
+# =========================================================
+# ALKALMAZÁS ELŐKÉSZÍTÉSE
+# =========================================================
+
+init_db()
+
+start_discord_bot()
+
+
+# =========================================================
+# PROGRAM INDÍTÁSA
+# =========================================================
+
+if __name__ == "__main__":
 
     port = int(
         os.environ.get(
