@@ -260,6 +260,7 @@
 
                             <tr>
 
+                                <th>#</th>
                                 <th>Név</th>
                                 <th>Karakter ID</th>
                                 <th>Discord</th>
@@ -288,6 +289,11 @@
                                     {% endif %}
                                 "
                             >
+
+                                <td class="row-number">
+                                    {{ loop.index }}
+                                </td>
+
 
                                 <td>
                                     <b>{{ m.name }}</b>
@@ -441,7 +447,7 @@
                             <tr>
 
                                 <td
-                                    colspan="7"
+                                    colspan="8"
                                     class="empty"
                                 >
                                     Még nincs felvitt tag.
@@ -1417,7 +1423,7 @@ async function showMember(id) {
                 <div class="box">
 
                     <h3>
-                        Hibapont hozzáadása
+                        ⚠ Hibapont hozzáadása
                     </h3>
 
 
@@ -1433,6 +1439,10 @@ async function showMember(id) {
                         >
 
 
+                        <label>
+                            Hibapontok száma
+                        </label>
+
                         <input
                             type="number"
                             name="points"
@@ -1441,6 +1451,10 @@ async function showMember(id) {
                             required
                         >
 
+
+                        <label>
+                            Indoklás
+                        </label>
 
                         <textarea
                             name="reason"
@@ -1453,7 +1467,7 @@ async function showMember(id) {
                             class="primary full"
                             type="submit"
                         >
-                            ＋ Hozzáadás
+                            ＋ Hibapont hozzáadása
                         </button>
 
                     </form>
@@ -1690,7 +1704,7 @@ async function showMember(id) {
                 >
 
                     <h3>
-                        Hibapont napló
+                        ⚠ Hibapont napló
                     </h3>
 
 
@@ -1784,18 +1798,6 @@ async function syncDiscord() {
 
         const text =
             await response.text();
-
-
-        console.log(
-            "Discord sync HTTP:",
-            response.status
-        );
-
-
-        console.log(
-            "Discord sync válasz:",
-            text
-        );
 
 
         let data;
@@ -1975,18 +1977,6 @@ async function loadUnmatchedDiscord() {
 
         const text =
             await response.text();
-
-
-        console.log(
-            "Discord unmatched HTTP:",
-            response.status
-        );
-
-
-        console.log(
-            "Discord unmatched válasz:",
-            text
-        );
 
 
         let data;
