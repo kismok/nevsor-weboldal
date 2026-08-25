@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="hu">
+
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Hibapont napló</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+    <!-- =====================================================
+         BAL OLDALI MENÜ
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            ▣ <span>NÉVSOR</span>
+        </div>
+
+
+        <nav>
+
+            <a
+                href="/?month={{ selected_month }}"
+            >
+                ☷ Névsor
+            </a>
+
+
+            <a
+                class="active"
+                href="/penalty-log?month={{ selected_month }}"
+            >
+                ⚠ Hibapont napló
+            </a>
+
+
+            {% if logged_in %}
+
+            <a href="/?month={{ selected_month }}#discord">
+                ◉ Discord kapcsolatok
+            </a>
+
+            {% endif %}
+
+        </nav>
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         FŐ TARTALOM
+    ====================================================== -->
+
+    <main>
+
+        <header>
+
+            <div class="hamb">
+                ☰
+            </div>
+
+
+            <form
+                class="search"
+                method="get"
+                action="/penalty-log"
+            >
+
+                <input
+                    type="hidden"
+                    name="month"
+                    value="{{ selected_month }}"
+                >
+
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q|default('') }}"
+                    placeholder="Keresés név, karakter ID vagy indoklás alapján..."
+                >
+
+            </form>
+
+
+            <div class="auth-buttons">
+
+                {% if logged_in %}
+
+                <span class="logged-user">
+                    🔓 Szerkesztő mód
+                </span>
+
+
+                <a
+                    href="/logout"
+                    class="secondary"
+                >
+                    Kijelentkezés
+                </a>
+
+                {% else %}
+
+                <a
+                    href="/login"
+                    class="secondary"
+                >
+                    🔒 Bejelentkezés
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </header>
+
+
+
+        <section class="content">
+
+
+            <!-- =====================================================
+                 OLDAL FEJLÉC
+            ====================================================== -->
+
+            <div class="title-row">
+
+                <div>
+
+                    <h1>
+                        ⚠ HIBAPONT NAPLÓ
+                    </h1>
+
+                    <p>
+                        Az összes kiosztott hibapont és azok részletei
+                    </p>
+
+                </div>
+
+
+                <div class="title-buttons">
+
+                    <a
+                        class="secondary"
+                        href="/?month={{ selected_month }}"
+                    >
+                        ← Vissza a névsorhoz
+                    </a>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =====================================================
+                 HÓNAP VÁLTÓ
+            ====================================================== -->
+
+            <div class="month-selector">
+
+                <button
+                    class="icon"
+                    type="button"
+                    onclick="changeMonth(-1)"
+                    title="Előző hónap"
+                >
+                    ←
+                </button>
+
+
+                <div class="selected-month">
+
+                    <span>📅</span>
+
+                    <b>
+                        {{ selected_month_display }}
+                    </b>
+
+                </div>
+
+
+                <button
+                    class="icon"
+                    type="button"
+                    onclick="changeMonth(1)"
+                    title="Következő hónap"
+                >
+                    →
+                </button>
+
+
+                <button
+                    class="secondary"
+                    type="button"
+                    onclick="goCurrentMonth()"
+                >
+                    Mai hónap
+                </button>
+
+            </div>
+
+
+
+            <!-- =====================================================
+                 HIBAPONT TÁBLÁZAT
+            ====================================================== -->
+
+            <div class="card">
+
+                <div class="table-wrap">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>#</th>
+                                <th>Név</th>
+                                <th>Karakter ID</th>
+                                <th>Hibapont</th>
+                                <th>Indoklás</th>
+                                <th>Dátum</th>
+
+                                {% if logged_in %}
+
+                                <th>Műveletek</th>
+
+                                {% endif %}
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for p in penalties %}
+
+                            <tr>
+
+                                <td class="row-number">
+                                    {{ loop.index }}
+                                </td>
+
+
+                                <td>
+                                    <b>
+                                        {{ p.member_name }}
+                                    </b>
+                                </td>
+
+
+                                <td>
+                                    {{ p.character_id }}
+                                </td>
+
+
+                                <td class="points">
+                                    +{{ p.points }}
+                                </td>
+
+
+                                <td>
+                                    {{ p.reason }}
+                                </td>
+
+
+                                <td class="muted">
+
+                                    {{
+                                        (p.created_at|string)
+                                        .replace("T", " ")
+                                    }}
+
+                                </td>
+
+
+                                {% if logged_in %}
+
+                                <td>
+
+                                    <form
+                                        class="inline"
+                                        method="post"
+                                        action="/penalty/{{ p.id }}/delete"
+                                        onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
+                                    >
+
+                                        <input
+                                            type="hidden"
+                                            name="month"
+                                            value="{{ selected_month }}"
+                                        >
+
+
+                                        <input
+                                            type="hidden"
+                                            name="redirect"
+                                            value="penalty-log"
+                                        >
+
+
+                                        <button
+                                            class="icon delete"
+                                            type="submit"
+                                            title="Hibapont törlése"
+                                        >
+                                            🗑
+                                        </button>
+
+                                    </form>
+
+                                </td>
+
+                                {% endif %}
+
+                            </tr>
+
+
+                            {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="{% if logged_in %}7{% else %}6{% endif %}"
+                                    class="empty"
+                                >
+                                    🎉 Ebben a hónapban nincs rögzített hibapont.
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+    </main>
+
+</div>
+
+
+
+<script>
+
+
+const selectedMonth =
+    "{{ selected_month }}";
+
+
+
+function changeMonth(offset) {
+
+    const parts =
+        selectedMonth.split("-");
+
+
+    let year =
+        Number(parts[0]);
+
+
+    let month =
+        Number(parts[1]);
+
+
+    month += offset;
+
+
+    if (month < 1) {
+
+        month = 12;
+        year--;
+
+    }
+
+
+    if (month > 12) {
+
+        month = 1;
+        year++;
+
+    }
+
+
+    const newMonth =
+        year +
+        "-" +
+        String(month).padStart(2, "0");
+
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    params.set(
+        "month",
+        newMonth
+    );
+
+
+    window.location.href =
+        "/penalty-log?" +
+        params.toString();
+
+}
+
+
+
+function goCurrentMonth() {
+
+    const now =
+        new Date();
+
+
+    const currentMonth =
+        now.getFullYear() +
+        "-" +
+        String(
+            now.getMonth() + 1
+        ).padStart(2, "0");
+
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    params.set(
+        "month",
+        currentMonth
+    );
+
+
+    window.location.href =
+        "/penalty-log?" +
+        params.toString();
+
+}
+
+
+</script>
+
+
+</body>
+</html>
