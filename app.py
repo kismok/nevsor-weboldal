@@ -821,6 +821,74 @@ def edit_member(member_id):
 
 
 # =========================================================
+# HIBAPONT NAPLÓ OLDAL
+# =========================================================
+
+@app.route(
+    "/penalty-log"
+)
+def penalty_log():
+
+    q = request.args.get(
+        "q",
+        ""
+    ).strip()
+
+    query = """
+        SELECT
+            p.id,
+            p.member_id,
+            p.points,
+            p.reason,
+            p.created_at,
+            m.name,
+            m.character_id
+
+        FROM penalty_log p
+
+        JOIN members m
+            ON m.id = p.member_id
+    """
+
+    params = []
+
+    if q:
+
+        like = f"%{q}%"
+
+        query += """
+            WHERE
+                m.name LIKE ?
+                OR m.character_id LIKE ?
+                OR p.reason LIKE ?
+        """
+
+        params.extend([
+            like,
+            like,
+            like
+        ])
+
+    query += """
+        ORDER BY
+            p.created_at DESC,
+            p.id DESC
+    """
+
+    penalties = db().execute(
+        query,
+        params
+    ).fetchall()
+
+    return render_template(
+        "penalty_log.html",
+        penalties=penalties,
+        q=q,
+        logged_in=is_logged_in()
+    )
+
+
+# =========================================================
 # TAG ADATAI
 # =========================================================
 
