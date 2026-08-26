@@ -4,6 +4,7 @@ import threading
 import asyncio
 import re
 import unicodedata
+import io
 
 from datetime import datetime
 
@@ -19,7 +20,8 @@ from flask import (
     url_for,
     jsonify,
     abort,
-    session
+    session,
+    send_file
 )
 
 
@@ -1249,6 +1251,72 @@ def delete_member(member_id):
             "index",
             month=month
         )
+    )
+
+
+
+
+# =========================================================
+# ADATBÁZIS EXPORTÁLÁS
+# =========================================================
+
+@app.route(
+    "/export"
+)
+def export_database():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    source = get_connection()
+
+    try:
+
+        export_conn = sqlite3.connect(
+            ":memory:"
+        )
+
+        try:
+
+            source.backup(
+                export_conn
+            )
+
+            buffer = io.BytesIO()
+
+            for line in export_conn.iterdump():
+
+                buffer.write(
+                    (
+                        line + "\n"
+                    ).encode(
+                        "utf-8"
+                    )
+                )
+
+            buffer.seek(0)
+
+        finally:
+
+            export_conn.close()
+
+    finally:
+
+        source.close()
+
+    filename = (
+        f"nevsor-export-"
+        f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.sql"
+    )
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/sql"
     )
 
 
