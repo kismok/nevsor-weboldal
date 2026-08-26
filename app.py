@@ -5,6 +5,8 @@ import asyncio
 import re
 import unicodedata
 import io
+import tempfile
+import shutil
 
 from openpyxl import Workbook
 
@@ -23,7 +25,8 @@ from flask import (
     jsonify,
     abort,
     session,
-    send_file
+    send_file,
+    flash
 )
 
 
@@ -1256,6 +1259,218 @@ def delete_member(member_id):
     )
 
 
+
+
+# =========================================================
+# ADATBÁZIS BIZTONSÁGI MENTÉS
+# =========================================================
+
+@app.route(
+    "/backup/download"
+)
+def download_backup():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    # SQLite online backup: így akkor is konzisztens mentést készít,
+    # ha az alkalmazás éppen használja az adatbázist.
+    source = get_connection()
+    backup_buffer = io.BytesIO()
+
+    try:
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".db",
+            delete=False
+        ) as temp_file:
+
+            temp_path = temp_file.name
+
+        destination = sqlite3.connect(temp_path)
+
+        try:
+
+            source.backup(destination)
+
+        finally:
+
+            destination.close()
+
+        with open(temp_path, "rb") as backup_file:
+
+            backup_buffer.write(
+                backup_file.read()
+            )
+
+    finally:
+
+        source.close()
+
+        if 'temp_path' in locals() and os.path.exists(temp_path):
+
+            os.remove(temp_path)
+
+    backup_buffer.seek(0)
+
+    filename = (
+        f"nevsor-mentes-"
+        f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.db"
+    )
+
+    return send_file(
+        backup_buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/octet-stream"
+    )
+
+
+# =========================================================
+# ADATBÁZIS VISSZAÁLLÍTÁS
+# =========================================================
+
+@app.route(
+    "/backup/restore",
+    methods=["POST"]
+)
+def restore_backup():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    month = normalize_month(
+        request.form.get(
+            "month",
+            ""
+        )
+    )
+
+    uploaded_file = request.files.get(
+        "backup_file"
+    )
+
+    if not uploaded_file or not uploaded_file.filename:
+
+        flash("❌ Nem választottál ki mentési fájlt.")
+
+        return redirect(
+            url_for(
+                "index",
+                month=month
+            )
+        )
+
+    temp_path = None
+    restore_copy_path = None
+
+    try:
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".db",
+            delete=False
+        ) as temp_file:
+
+            temp_path = temp_file.name
+            uploaded_file.save(temp_path)
+
+        # Ellenőrizzük, hogy valóban SQLite adatbázis-e.
+        test_conn = sqlite3.connect(temp_path)
+
+        try:
+
+            integrity = test_conn.execute(
+                "PRAGMA integrity_check"
+            ).fetchone()[0]
+
+            if integrity != "ok":
+
+                raise ValueError(
+                    "A mentési fájl sérült vagy nem érvényes SQLite adatbázis."
+                )
+
+            required_tables = {
+                row[0]
+                for row in test_conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+
+            if "members" not in required_tables:
+
+                raise ValueError(
+                    "Ez nem a Névsor alkalmazás érvényes mentése."
+                )
+
+        finally:
+
+            test_conn.close()
+
+        # Az aktuális kapcsolat bezárása, hogy a fájl cserélhető legyen.
+        old_conn = g.pop(
+            "db",
+            None
+        )
+
+        if old_conn:
+
+            old_conn.close()
+
+        # A jelenlegi adatbázisról automatikusan készül egy visszaállítás
+        # előtti mentés is.
+        if os.path.exists(DB_PATH):
+
+            restore_copy_path = (
+                f"{DB_PATH}.before_restore-"
+                f"{datetime.now().strftime('%Y%m%d-%H%M%S')}.db"
+            )
+
+            shutil.copy2(
+                DB_PATH,
+                restore_copy_path
+            )
+
+        # Atomikus csere: a feltöltött adatbázis kerül a helyére.
+        os.replace(
+            temp_path,
+            DB_PATH
+        )
+
+        temp_path = None
+
+        # A régebbi adatbázisok kompatibilitási ellenőrzése/migrációja.
+        init_db()
+
+        flash("✅ A biztonsági mentés sikeresen vissza lett állítva.")
+
+    except Exception as e:
+
+        print(
+            f"❌ Mentés visszaállítási hiba: {repr(e)}"
+        )
+
+        flash(
+            f"❌ A visszaállítás nem sikerült: {str(e)}"
+        )
+
+    finally:
+
+        if temp_path and os.path.exists(temp_path):
+
+            os.remove(temp_path)
+
+    return redirect(
+        url_for(
+            "index",
+            month=month
+        )
+    )
 
 
 # =========================================================
