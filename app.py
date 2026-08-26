@@ -4,6 +4,9 @@ import threading
 import asyncio
 import re
 import unicodedata
+import io
+
+from openpyxl import Workbook
 
 from datetime import datetime
 
@@ -19,7 +22,8 @@ from flask import (
     url_for,
     jsonify,
     abort,
-    session
+    session,
+    send_file
 )
 
 
@@ -1248,6 +1252,225 @@ def delete_member(member_id):
         url_for(
             "index",
             month=month
+        )
+    )
+
+
+
+
+# =========================================================
+# EXCEL EXPORTÁLÁS
+# =========================================================
+
+@app.route(
+    "/export/excel"
+)
+def export_database():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    conn = get_connection()
+
+    try:
+
+        members = conn.execute("""
+            SELECT
+                id,
+                name,
+                character_id,
+                discord_user_id,
+                discord_username,
+                created_at
+
+            FROM members
+
+            ORDER BY name COLLATE NOCASE
+        """).fetchall()
+
+        payments = conn.execute("""
+            SELECT
+                p.id,
+                p.member_id,
+                m.name,
+                m.character_id,
+                p.payment_month,
+                p.payment_status,
+                p.payment_date,
+                p.created_at,
+                p.updated_at
+
+            FROM payments p
+
+            JOIN members m
+                ON m.id = p.member_id
+
+            ORDER BY
+                p.payment_month DESC,
+                m.name COLLATE NOCASE
+        """).fetchall()
+
+        penalties = conn.execute("""
+            SELECT
+                p.id,
+                p.member_id,
+                m.name,
+                m.character_id,
+                p.points,
+                p.reason,
+                p.created_at
+
+            FROM penalty_log p
+
+            JOIN members m
+                ON m.id = p.member_id
+
+            ORDER BY
+                p.created_at DESC,
+                p.id DESC
+        """).fetchall()
+
+    finally:
+
+        conn.close()
+
+    workbook = Workbook()
+
+    members_sheet = workbook.active
+    members_sheet.title = "Tagok"
+
+    members_sheet.append([
+        "ID",
+        "Név",
+        "Karakter ID",
+        "Discord felhasználó ID",
+        "Discord név",
+        "Létrehozva"
+    ])
+
+    for member in members:
+
+        members_sheet.append([
+            member["id"],
+            member["name"],
+            member["character_id"],
+            member["discord_user_id"],
+            member["discord_username"],
+            member["created_at"]
+        ])
+
+    payments_sheet = workbook.create_sheet(
+        "Befizetések"
+    )
+
+    payments_sheet.append([
+        "Befizetés ID",
+        "Tag ID",
+        "Név",
+        "Karakter ID",
+        "Hónap",
+        "Státusz",
+        "Befizetés dátuma",
+        "Létrehozva",
+        "Módosítva"
+    ])
+
+    status_names = {
+        0: "Nincs befizetve",
+        1: "Befizetve",
+        2: "Felmentve"
+    }
+
+    for payment in payments:
+
+        payments_sheet.append([
+            payment["id"],
+            payment["member_id"],
+            payment["name"],
+            payment["character_id"],
+            payment["payment_month"],
+            status_names.get(
+                int(payment["payment_status"] or 0),
+                "Ismeretlen"
+            ),
+            payment["payment_date"],
+            payment["created_at"],
+            payment["updated_at"]
+        ])
+
+    penalties_sheet = workbook.create_sheet(
+        "Hibapontok"
+    )
+
+    penalties_sheet.append([
+        "Hibapont ID",
+        "Tag ID",
+        "Név",
+        "Karakter ID",
+        "Pont",
+        "Indok",
+        "Dátum"
+    ])
+
+    for penalty in penalties:
+
+        penalties_sheet.append([
+            penalty["id"],
+            penalty["member_id"],
+            penalty["name"],
+            penalty["character_id"],
+            penalty["points"],
+            penalty["reason"],
+            penalty["created_at"]
+        ])
+
+    for sheet in workbook.worksheets:
+
+        sheet.freeze_panes = "A2"
+        sheet.auto_filter.ref = sheet.dimensions
+
+        for column_cells in sheet.columns:
+
+            max_length = 0
+
+            for cell in column_cells:
+
+                value = "" if cell.value is None else str(cell.value)
+
+                if len(value) > max_length:
+
+                    max_length = len(value)
+
+            column_letter = column_cells[0].column_letter
+
+            sheet.column_dimensions[column_letter].width = min(
+                max(max_length + 2, 10),
+                50
+            )
+
+    buffer = io.BytesIO()
+
+    workbook.save(
+        buffer
+    )
+
+    buffer.seek(0)
+
+    filename = (
+        f"nevsor-export-"
+        f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.xlsx"
+    )
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
         )
     )
 
