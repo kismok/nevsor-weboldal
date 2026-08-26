@@ -24,6 +24,7 @@
 
 <div class="app">
 
+
     <!-- =====================================================
          BAL OLDALI MENÜ
     ====================================================== -->
@@ -135,6 +136,7 @@
 
         <section class="content">
 
+
             <!-- =====================================================
                  FEJLÉC
             ====================================================== -->
@@ -158,12 +160,31 @@
 
                 <div class="title-buttons">
 
-                    <a
-                        href="/export/excel?month={{ selected_month }}"
-                        class="secondary"
-                    >
-                        💾 Excel exportálás
-                    </a>
+                    <div class="export-tools">
+
+                        <a
+                            href="{{ url_for('export_database') }}"
+                            class="secondary"
+                        >
+                            💾 Excel exportálás
+                        </a>
+
+                        <a
+                            href="{{ url_for('download_backup') }}"
+                            class="secondary"
+                        >
+                            📥 Biztonsági mentés
+                        </a>
+
+                        <button
+                            class="secondary"
+                            type="button"
+                            onclick="openRestore()"
+                        >
+                            ♻️ Visszaállítás
+                        </button>
+
+                    </div>
 
 
                     <button
@@ -473,6 +494,10 @@
 
 
 
+            <!-- =====================================================
+                 DISCORDON VAN, DE NINCS A NÉVSORBAN
+            ====================================================== -->
+
             {% if logged_in %}
 
             <div
@@ -570,6 +595,70 @@
 {% if logged_in %}
 
 <!-- =====================================================
+     BIZTONSÁGI MENTÉS VISSZAÁLLÍTÁSA
+====================================================== -->
+
+<div
+    class="modal"
+    id="restoreModal"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="close"
+            type="button"
+            onclick="closeRestore()"
+        >
+            ×
+        </button>
+
+        <h2>
+            ♻️ Biztonsági mentés visszaállítása
+        </h2>
+
+        <p class="muted">
+            Válaszd ki a korábban letöltött Névsor .db mentési fájlt.
+            A jelenlegi adatbázisról a rendszer visszaállítás előtt automatikusan készít egy másolatot.
+        </p>
+
+        <form
+            method="post"
+            action="{{ url_for('restore_backup') }}"
+            enctype="multipart/form-data"
+            onsubmit="return confirm('Biztosan visszaállítod ezt a mentést? A jelenlegi adatok lecserélődnek.')"
+        >
+
+            <input
+                type="hidden"
+                name="month"
+                value="{{ selected_month }}"
+            >
+
+            <label>Mentési fájl</label>
+
+            <input
+                type="file"
+                name="backup_file"
+                accept=".db,application/octet-stream"
+                required
+            >
+
+            <button
+                class="primary full"
+                type="submit"
+            >
+                ♻️ Visszaállítás indítása
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
      ÚJ TAG
 ====================================================== -->
 
@@ -632,9 +721,17 @@
                 onchange="updateAddPaymentStatus()"
             >
 
-                <option value="0">🔴 Nem fizetve</option>
-                <option value="1">🟢 Fizetve</option>
-                <option value="2">🟡 Mentesség</option>
+                <option value="0">
+                    🔴 Nem fizetve
+                </option>
+
+                <option value="1">
+                    🟢 Fizetve
+                </option>
+
+                <option value="2">
+                    🟡 Mentesség
+                </option>
 
             </select>
 
@@ -727,9 +824,17 @@
                 onchange="updateEditPaymentStatus()"
             >
 
-                <option value="0">🔴 Nem fizetve</option>
-                <option value="1">🟢 Fizetve</option>
-                <option value="2">🟡 Mentesség</option>
+                <option value="0">
+                    🔴 Nem fizetve
+                </option>
+
+                <option value="1">
+                    🟢 Fizetve
+                </option>
+
+                <option value="2">
+                    🟡 Mentesség
+                </option>
 
             </select>
 
@@ -756,52 +861,73 @@
 
 </div>
 
+
 {% endif %}
 
 
 
 <script>
 
+
 const loggedIn =
     {{ 'true' if logged_in else 'false' }};
+
 
 const selectedMonth =
     "{{ selected_month }}";
 
 
+
 function changeMonth(offset) {
 
-    const parts = selectedMonth.split("-");
+    const parts =
+        selectedMonth.split("-");
 
-    let year = Number(parts[0]);
-    let month = Number(parts[1]);
+
+    let year =
+        Number(parts[0]);
+
+
+    let month =
+        Number(parts[1]);
+
 
     month += offset;
 
+
     if (month < 1) {
+
         month = 12;
         year--;
+
     }
 
+
     if (month > 12) {
+
         month = 1;
         year++;
+
     }
+
 
     const newMonth =
         year +
         "-" +
         String(month).padStart(2, "0");
 
+
     const params =
         new URLSearchParams(
             window.location.search
         );
 
+
     params.set(
         "month",
         newMonth
     );
+
 
     window.location.href =
         "/?" +
@@ -810,9 +936,12 @@ function changeMonth(offset) {
 }
 
 
+
 function goCurrentMonth() {
 
-    const now = new Date();
+    const now =
+        new Date();
+
 
     const currentMonth =
         now.getFullYear() +
@@ -821,15 +950,18 @@ function goCurrentMonth() {
             now.getMonth() + 1
         ).padStart(2, "0");
 
+
     const params =
         new URLSearchParams(
             window.location.search
         );
 
+
     params.set(
         "month",
         currentMonth
     );
+
 
     window.location.href =
         "/?" +
@@ -838,34 +970,47 @@ function goCurrentMonth() {
 }
 
 
+
 function updateAddPaymentStatus() {
 
     const status =
         Number(
             document
-                .getElementById("addPaymentStatus")
+                .getElementById(
+                    "addPaymentStatus"
+                )
                 .value
         );
+
 
     const date =
         document.getElementById(
             "addPaymentDate"
         );
 
-    if (!date) return;
+
+    if (!date) {
+
+        return;
+
+    }
+
 
     if (status === 2) {
 
         date.value = "";
         date.disabled = true;
 
-    } else {
+    }
+
+    else {
 
         date.disabled = false;
 
     }
 
 }
+
 
 
 function updateEditPaymentStatus() {
@@ -873,23 +1018,34 @@ function updateEditPaymentStatus() {
     const status =
         Number(
             document
-                .getElementById("editPaymentStatus")
+                .getElementById(
+                    "editPaymentStatus"
+                )
                 .value
         );
+
 
     const date =
         document.getElementById(
             "editPaymentDate"
         );
 
-    if (!date) return;
+
+    if (!date) {
+
+        return;
+
+    }
+
 
     if (status === 2) {
 
         date.value = "";
         date.disabled = true;
 
-    } else {
+    }
+
+    else {
 
         date.disabled = false;
 
@@ -898,7 +1054,8 @@ function updateEditPaymentStatus() {
 }
 
 
-function openAdd() {
+
+function openRestore() {
 
     if (!loggedIn) {
 
@@ -907,40 +1064,20 @@ function openAdd() {
 
     }
 
-    const modal =
-        document.getElementById(
-            "addModal"
-        );
+    const modal = document.getElementById("restoreModal");
 
-    if (!modal) return;
+    if (modal) {
 
-    document
-        .getElementById("addPaymentStatus")
-        .value = "0";
-
-    const dateInput =
-        document.getElementById(
-            "addPaymentDate"
-        );
-
-    if (dateInput) {
-
-        dateInput.disabled = false;
-        dateInput.value = "";
+        modal.classList.add("show");
 
     }
-
-    modal.classList.add("show");
 
 }
 
 
-function closeAdd() {
+function closeRestore() {
 
-    const modal =
-        document.getElementById(
-            "addModal"
-        );
+    const modal = document.getElementById("restoreModal");
 
     if (modal) {
 
@@ -951,14 +1088,95 @@ function closeAdd() {
 }
 
 
+function openAdd() {
+
+    if (!loggedIn) {
+
+        window.location.href =
+            "/login";
+
+        return;
+
+    }
+
+
+    const modal =
+        document.getElementById(
+            "addModal"
+        );
+
+
+    if (!modal) {
+
+        return;
+
+    }
+
+
+    document
+        .getElementById(
+            "addPaymentStatus"
+        )
+        .value =
+        "0";
+
+
+    const dateInput =
+        document.getElementById(
+            "addPaymentDate"
+        );
+
+
+    if (dateInput) {
+
+        dateInput.disabled =
+            false;
+
+        dateInput.value =
+            "";
+
+    }
+
+
+    modal.classList.add(
+        "show"
+    );
+
+}
+
+
+
+function closeAdd() {
+
+    const modal =
+        document.getElementById(
+            "addModal"
+        );
+
+
+    if (modal) {
+
+        modal.classList.remove(
+            "show"
+        );
+
+    }
+
+}
+
+
+
 async function editMember(id) {
 
     if (!loggedIn) {
 
-        window.location.href = "/login";
+        window.location.href =
+            "/login";
+
         return;
 
     }
+
 
     try {
 
@@ -972,18 +1190,28 @@ async function editMember(id) {
                 )
             );
 
+
         const text =
             await response.text();
 
+
         let m;
+
 
         try {
 
-            m = JSON.parse(text);
+            m =
+                JSON.parse(text);
 
         }
 
         catch (jsonError) {
+
+            console.error(
+                "Nem JSON válasz:",
+                text
+            );
+
 
             throw new Error(
                 "A szerver hibás választ adott. HTTP státusz: " +
@@ -991,6 +1219,7 @@ async function editMember(id) {
             );
 
         }
+
 
         if (!response.ok) {
 
@@ -1001,51 +1230,78 @@ async function editMember(id) {
 
         }
 
+
         document
-            .getElementById("editName")
+            .getElementById(
+                "editName"
+            )
             .value =
             m.name || "";
 
+
         document
-            .getElementById("editCharacterId")
+            .getElementById(
+                "editCharacterId"
+            )
             .value =
             m.character_id || "";
 
+
         document
-            .getElementById("editPaymentStatus")
+            .getElementById(
+                "editPaymentStatus"
+            )
             .value =
             String(
                 m.payment_status || 0
             );
 
+
         document
-            .getElementById("editPaymentDate")
+            .getElementById(
+                "editPaymentDate"
+            )
             .value =
             m.payment_date || "";
 
+
         document
-            .getElementById("editMonth")
+            .getElementById(
+                "editMonth"
+            )
             .value =
             selectedMonth;
 
+
         document
-            .getElementById("editForm")
+            .getElementById(
+                "editForm"
+            )
             .action =
             "/member/" +
             id +
             "/edit";
 
+
         updateEditPaymentStatus();
 
+
         document
-            .getElementById("editModal")
-            .classList.add("show");
+            .getElementById(
+                "editModal"
+            )
+            .classList.add(
+                "show"
+            );
 
     }
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
+
 
         alert(
             error.message ||
@@ -1057,6 +1313,7 @@ async function editMember(id) {
 }
 
 
+
 function closeEdit() {
 
     const modal =
@@ -1064,13 +1321,17 @@ function closeEdit() {
             "editModal"
         );
 
+
     if (modal) {
 
-        modal.classList.remove("show");
+        modal.classList.remove(
+            "show"
+        );
 
     }
 
 }
+
 
 
 function closeDetail() {
@@ -1080,13 +1341,17 @@ function closeDetail() {
             "details"
         );
 
+
     if (details) {
 
-        details.classList.remove("open");
+        details.classList.remove(
+            "open"
+        );
 
     }
 
 }
+
 
 
 async function showMember(id) {
@@ -1103,10 +1368,13 @@ async function showMember(id) {
                 )
             );
 
+
         const text =
             await response.text();
 
+
         let m;
+
 
         try {
 
@@ -1117,12 +1385,19 @@ async function showMember(id) {
 
         catch (jsonError) {
 
+            console.error(
+                "Nem JSON válasz:",
+                text
+            );
+
+
             throw new Error(
                 "A szerver hibás választ adott. HTTP státusz: " +
                 response.status
             );
 
         }
+
 
         if (!response.ok) {
 
@@ -1133,33 +1408,54 @@ async function showMember(id) {
 
         }
 
+
         document
-            .getElementById("details")
-            .classList.add("open");
+            .getElementById(
+                "details"
+            )
+            .classList.add(
+                "open"
+            );
+
 
         let paymentText =
             "🔴 Nem fizetve";
 
-        if (Number(m.payment_status) === 2) {
+
+        if (
+            Number(
+                m.payment_status
+            ) === 2
+        ) {
 
             paymentText =
                 "🟡 Mentesség";
 
         }
 
-        else if (Number(m.payment_status) === 1) {
+        else if (
+            Number(
+                m.payment_status
+            ) === 1
+        ) {
 
             paymentText =
                 "🟢 Fizetve";
 
         }
 
-        let logs = "";
+
+        let logs =
+            "";
+
 
         const logItems =
             m.logs || [];
 
-        for (const x of logItems) {
+
+        for (
+            const x of logItems
+        ) {
 
             logs += `
 
@@ -1203,12 +1499,25 @@ async function showMember(id) {
 
                     </div>
 
+
                     <span>
-                        ${escapeHtml(x.reason || "")}
+                        ${escapeHtml(
+                            x.reason || ""
+                        )}
                     </span>
 
+
                     <small>
-                        ${(x.created_at || "").replace("T", " ")}
+                        ${
+                            (
+                                x.created_at ||
+                                ""
+                            )
+                            .replace(
+                                "T",
+                                " "
+                            )
+                        }
                     </small>
 
                 </div>
@@ -1217,6 +1526,7 @@ async function showMember(id) {
 
         }
 
+
         if (!logs) {
 
             logs =
@@ -1224,7 +1534,10 @@ async function showMember(id) {
 
         }
 
-        let editorContent = "";
+
+        let editorContent =
+            "";
+
 
         if (m.logged_in) {
 
@@ -1236,6 +1549,7 @@ async function showMember(id) {
                         ⚠ Hibapont hozzáadása
                     </h3>
 
+
                     <form
                         method="post"
                         action="/member/${m.id}/penalty"
@@ -1246,6 +1560,7 @@ async function showMember(id) {
                             name="month"
                             value="${selectedMonth}"
                         >
+
 
                         <label>
                             Hibapontok száma
@@ -1259,6 +1574,7 @@ async function showMember(id) {
                             required
                         >
 
+
                         <label>
                             Indoklás
                         </label>
@@ -1268,6 +1584,7 @@ async function showMember(id) {
                             placeholder="Indoklás / megjegyzés..."
                             required
                         ></textarea>
+
 
                         <button
                             class="primary full"
@@ -1281,11 +1598,13 @@ async function showMember(id) {
                 </div>
 
 
+
                 <div class="box">
 
                     <h3>
                         Discord kapcsolat szerkesztése
                     </h3>
+
 
                     <form
                         method="post"
@@ -1298,6 +1617,7 @@ async function showMember(id) {
                             value="${selectedMonth}"
                         >
 
+
                         <input
                             name="discord_username"
                             placeholder="Discord név"
@@ -1306,6 +1626,7 @@ async function showMember(id) {
                             )}"
                         >
 
+
                         <input
                             name="discord_user_id"
                             placeholder="Discord ID"
@@ -1313,6 +1634,7 @@ async function showMember(id) {
                                 m.discord_user_id || ""
                             )}"
                         >
+
 
                         <button
                             class="secondary full"
@@ -1329,23 +1651,35 @@ async function showMember(id) {
 
         }
 
+
         document
-            .getElementById("detailContent")
+            .getElementById(
+                "detailContent"
+            )
             .innerHTML = `
 
                 <div class="profile">
 
                     <div class="avatar">
 
-                        ${(m.name || "?")
+                        ${
+                            (
+                                m.name ||
+                                "?"
+                            )
                             .charAt(0)
-                            .toUpperCase()}
+                            .toUpperCase()
+                        }
 
                     </div>
 
+
                     <h2>
-                        ${escapeHtml(m.name || "")}
+                        ${escapeHtml(
+                            m.name || ""
+                        )}
                     </h2>
+
 
                     <p>
 
@@ -1362,15 +1696,18 @@ async function showMember(id) {
                 </div>
 
 
+
                 <div class="box">
 
                     <h3>
                         Fizetési státusz
                     </h3>
 
+
                     <p>
                         ${paymentText}
                     </p>
+
 
                     <p>
 
@@ -1381,6 +1718,7 @@ async function showMember(id) {
                         </b>
 
                     </p>
+
 
                     <p>
 
@@ -1408,11 +1746,13 @@ async function showMember(id) {
                 </div>
 
 
+
                 <div class="box">
 
                     <h3>
                         Hibapont összesen
                     </h3>
+
 
                     <div class="bigpoints">
 
@@ -1427,11 +1767,13 @@ async function showMember(id) {
                 </div>
 
 
+
                 <div class="box">
 
                     <h3>
                         Discord profil
                     </h3>
+
 
                     ${
                         m.discord_username
@@ -1449,6 +1791,7 @@ async function showMember(id) {
                                 </b>
 
                             </p>
+
 
                             <small>
 
@@ -1487,6 +1830,7 @@ async function showMember(id) {
                         ⚠ Hibapont napló
                     </h3>
 
+
                     ${logs}
 
                 </div>
@@ -1497,7 +1841,10 @@ async function showMember(id) {
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
+
 
         alert(
             error.message ||
@@ -1525,15 +1872,18 @@ async function syncDiscord() {
 
     }
 
+
     const button =
         document.getElementById(
             "discordSyncButton"
         );
 
+
     const result =
         document.getElementById(
             "syncResult"
         );
+
 
     if (!button || !result) {
 
@@ -1541,13 +1891,18 @@ async function syncDiscord() {
 
     }
 
-    button.disabled = true;
+
+    button.disabled =
+        true;
+
 
     button.textContent =
         "⏳ Szinkronizálás...";
 
+
     result.innerHTML =
         '<p class="muted">Discord tagok lekérése folyamatban...</p>';
+
 
     try {
 
@@ -1563,15 +1918,20 @@ async function syncDiscord() {
                 }
             );
 
+
         const text =
             await response.text();
 
+
         let data;
+
 
         try {
 
             data =
-                JSON.parse(text);
+                JSON.parse(
+                    text
+                );
 
         }
 
@@ -1583,6 +1943,7 @@ async function syncDiscord() {
             );
 
         }
+
 
         if (
             !response.ok ||
@@ -1596,6 +1957,7 @@ async function syncDiscord() {
 
         }
 
+
         result.innerHTML = `
 
             <div class="sync-success">
@@ -1603,6 +1965,7 @@ async function syncDiscord() {
                 <b>
                     ✅ Discord szinkronizálás kész
                 </b>
+
 
                 <p>
 
@@ -1612,19 +1975,25 @@ async function syncDiscord() {
                         ${data.matched || 0}
                     </b>
 
+
                     <br>
+
 
                     Nem található:
 
                     <b>
+
                         ${
                             data.not_found
                             ? data.not_found.length
                             : 0
                         }
+
                     </b>
 
+
                     <br>
+
 
                     Discordon van, de nincs a Névsorban:
 
@@ -1638,7 +2007,9 @@ async function syncDiscord() {
 
         `;
 
+
         await loadUnmatchedDiscord();
+
 
         setTimeout(
             function() {
@@ -1657,6 +2028,7 @@ async function syncDiscord() {
             "Discord szinkron hiba:",
             error
         );
+
 
         result.innerHTML = `
 
@@ -1677,7 +2049,9 @@ async function syncDiscord() {
 
     finally {
 
-        button.disabled = false;
+        button.disabled =
+            false;
+
 
         button.textContent =
             "🔄 Discord szinkronizálás";
@@ -1699,14 +2073,17 @@ async function loadUnmatchedDiscord() {
             "unmatchedDiscordList"
         );
 
+
     if (!container) {
 
         return;
 
     }
 
+
     container.innerHTML =
         '<p class="muted">Lista betöltése...</p>';
+
 
     try {
 
@@ -1720,15 +2097,20 @@ async function loadUnmatchedDiscord() {
                 }
             );
 
+
         const text =
             await response.text();
 
+
         let data;
+
 
         try {
 
             data =
-                JSON.parse(text);
+                JSON.parse(
+                    text
+                );
 
         }
 
@@ -1741,6 +2123,7 @@ async function loadUnmatchedDiscord() {
 
         }
 
+
         if (!response.ok) {
 
             throw new Error(
@@ -1750,8 +2133,10 @@ async function loadUnmatchedDiscord() {
 
         }
 
+
         const members =
             data.members || [];
+
 
         if (members.length === 0) {
 
@@ -1762,9 +2147,14 @@ async function loadUnmatchedDiscord() {
 
         }
 
-        let html = "";
 
-        for (const member of members) {
+        let html =
+            "";
+
+
+        for (
+            const member of members
+        ) {
 
             html += `
 
@@ -1782,6 +2172,7 @@ async function loadUnmatchedDiscord() {
 
                         </b>
 
+
                         <small>
 
                             @${escapeHtml(
@@ -1792,6 +2183,7 @@ async function loadUnmatchedDiscord() {
                         </small>
 
                     </div>
+
 
                     <span class="muted">
 
@@ -1810,6 +2202,7 @@ async function loadUnmatchedDiscord() {
 
         }
 
+
         container.innerHTML =
             html;
 
@@ -1821,6 +2214,7 @@ async function loadUnmatchedDiscord() {
             "Discord lista hiba:",
             error
         );
+
 
         container.innerHTML = `
 
@@ -1850,7 +2244,10 @@ async function loadUnmatchedDiscord() {
 function escapeHtml(value) {
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
+
 
     div.textContent =
         value === null ||
@@ -1858,7 +2255,10 @@ function escapeHtml(value) {
 
         ? ""
 
-        : String(value);
+        : String(
+            value
+        );
+
 
     return div.innerHTML;
 
@@ -1879,10 +2279,18 @@ document.addEventListener(
                 "addModal"
             );
 
+
         const editModal =
             document.getElementById(
                 "editModal"
             );
+
+
+        const restoreModal =
+            document.getElementById(
+                "restoreModal"
+            );
+
 
         if (
             addModal &&
@@ -1893,12 +2301,23 @@ document.addEventListener(
 
         }
 
+
         if (
             editModal &&
             event.target === editModal
         ) {
 
             closeEdit();
+
+        }
+
+
+        if (
+            restoreModal &&
+            event.target === restoreModal
+        ) {
+
+            closeRestore();
 
         }
 
@@ -1924,7 +2343,9 @@ document.addEventListener(
     }
 );
 
+
 </script>
+
 
 </body>
 </html>
