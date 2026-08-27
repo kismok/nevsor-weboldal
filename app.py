@@ -57,14 +57,86 @@ ADMIN_PASSWORD = os.environ.get(
 )
 
 
+def get_current_username():
+
+    return session.get("username")
+
+
 def is_logged_in():
 
-    return session.get("logged_in") is True
+    return bool(session.get("logged_in")) and bool(
+        get_current_username()
+    )
 
 
 def require_login():
 
     return is_logged_in()
+
+
+def require_admin():
+
+    return is_logged_in()
+
+
+def ensure_admin_table(conn):
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+
+def ensure_initial_admin(conn):
+
+    ensure_admin_table(conn)
+
+    count = conn.execute(
+        "SELECT COUNT(*) FROM admins"
+    ).fetchone()[0]
+
+    if count == 0:
+
+        conn.execute("""
+            INSERT INTO admins
+                (username, password, created_at)
+            VALUES (?, ?, ?)
+        """, (
+            ADMIN_USERNAME,
+            ADMIN_PASSWORD,
+            datetime.now().isoformat(
+                timespec="seconds"
+            )
+        ))
+
+    conn.commit()
+
+
+def verify_admin(username, password):
+
+    conn = get_connection()
+
+    try:
+
+        ensure_initial_admin(conn)
+
+        return conn.execute("""
+            SELECT id, username
+            FROM admins
+            WHERE username = ?
+              AND password = ?
+        """, (
+            username,
+            password
+        )).fetchone()
+
+    finally:
+
+        conn.close()
 
 
 # =========================================================
@@ -197,6 +269,8 @@ def close_db(_error=None):
 def init_db():
 
     conn = get_connection()
+
+    ensure_admin_table(conn)
 
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS members (
@@ -341,6 +415,8 @@ def init_db():
                 now
             ))
 
+    ensure_initial_admin(conn)
+
     conn.commit()
 
     conn.close()
@@ -368,12 +444,15 @@ def login():
             ""
         )
 
-        if (
-            username == ADMIN_USERNAME
-            and password == ADMIN_PASSWORD
-        ):
+        admin = verify_admin(
+            username,
+            password
+        )
+
+        if admin:
 
             session["logged_in"] = True
+            session["username"] = admin["username"]
 
             return redirect(
                 url_for("index")
@@ -387,6 +466,179 @@ def login():
     return render_template(
         "login.html",
         error=None
+    )
+
+
+# =========================================================
+# ADMINOK KEZELÉSE
+# =========================================================
+
+@app.route(
+    "/admin/add",
+    methods=["POST"]
+)
+def add_admin():
+
+    if not require_admin():
+
+        return redirect(
+            url_for("login")
+        )
+
+    username = request.form.get(
+        "username",
+        ""
+    ).strip()
+
+    password = request.form.get(
+        "password",
+        ""
+    )
+
+    if not username or not password:
+
+        return redirect(
+            url_for("index")
+        )
+
+    conn = db()
+
+    try:
+
+        ensure_admin_table(conn)
+
+        conn.execute("""
+            INSERT INTO admins
+                (username, password, created_at)
+            VALUES (?, ?, ?)
+        """, (
+            username,
+            password,
+            datetime.now().isoformat(
+                timespec="seconds"
+            )
+        ))
+
+        conn.commit()
+
+    except sqlite3.IntegrityError:
+
+        conn.rollback()
+
+    return redirect(
+        url_for("index")
+    )
+
+
+@app.route(
+    "/admin/<int:admin_id>/delete",
+    methods=["POST"]
+)
+def delete_admin(admin_id):
+
+    if not require_admin():
+
+        return redirect(
+            url_for("login")
+        )
+
+    current_username = get_current_username()
+    conn = db()
+
+    admin = conn.execute("""
+        SELECT id, username
+        FROM admins
+        WHERE id = ?
+    """, (
+        admin_id,
+    )).fetchone()
+
+    if not admin:
+
+        abort(404)
+
+    # A jelenlegi bejelentkezett admin nem törölhető.
+    if admin["username"] == current_username:
+
+        return redirect(
+            url_for("index")
+        )
+
+    count = conn.execute(
+        "SELECT COUNT(*) FROM admins"
+    ).fetchone()[0]
+
+    # Legalább egy admin mindig maradjon.
+    if count <= 1:
+
+        return redirect(
+            url_for("index")
+        )
+
+    conn.execute("""
+        DELETE FROM admins
+        WHERE id = ?
+    """, (
+        admin_id,
+    ))
+
+    conn.commit()
+
+    return redirect(
+        url_for("index")
+    )
+
+
+@app.route(
+    "/admin/<int:admin_id>/password",
+    methods=["POST"]
+)
+def change_admin_password(admin_id):
+
+    if not require_admin():
+
+        return redirect(
+            url_for("login")
+        )
+
+    password = request.form.get(
+        "password",
+        ""
+    )
+
+    if not password:
+
+        return redirect(
+            url_for("index")
+        )
+
+    conn = db()
+
+    admin = conn.execute("""
+        SELECT id
+        FROM admins
+        WHERE id = ?
+    """, (
+        admin_id,
+    )).fetchone()
+
+    if not admin:
+
+        abort(404)
+
+    conn.execute("""
+        UPDATE admins
+        SET password = ?
+        WHERE id = ?
+    """, (
+        password,
+        admin_id
+    ))
+
+    conn.commit()
+
+    return redirect(
+        url_for("index")
     )
 
 
@@ -496,6 +748,19 @@ def index():
         params
     ).fetchall()
 
+    admins = []
+
+    if is_logged_in():
+
+        admins = db().execute("""
+            SELECT
+                id,
+                username,
+                created_at
+            FROM admins
+            ORDER BY username COLLATE NOCASE
+        """).fetchall()
+
     return render_template(
         "index.html",
         members=members,
@@ -504,7 +769,9 @@ def index():
         selected_month_display=month_display(
             selected_month
         ),
-        logged_in=is_logged_in()
+        logged_in=is_logged_in(),
+        current_username=get_current_username(),
+        admins=admins
     )
 
 
