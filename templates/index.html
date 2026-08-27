@@ -205,6 +205,15 @@
                         ＋ Új tag hozzáadása
                     </button>
 
+
+                    <button
+                        class="secondary"
+                        type="button"
+                        onclick="openAdminManager()"
+                    >
+                        👤 Adminok
+                    </button>
+
                 </div>
 
                 {% endif %}
@@ -594,6 +603,154 @@
 
 {% if logged_in %}
 
+
+<!-- =====================================================
+     ADMINOK KEZELÉSE
+====================================================== -->
+
+<div
+    class="modal"
+    id="adminModal"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="close"
+            type="button"
+            onclick="closeAdminManager()"
+        >
+            ×
+        </button>
+
+
+        <h2>
+            👤 Adminok kezelése
+        </h2>
+
+
+        <div class="box">
+
+            <h3>
+                Új admin hozzáadása
+            </h3>
+
+
+            <form
+                method="post"
+                action="{{ url_for('add_admin') }}"
+            >
+
+                <label>
+                    Felhasználónév
+                </label>
+
+                <input
+                    type="text"
+                    name="username"
+                    required
+                >
+
+
+                <label>
+                    Jelszó
+                </label>
+
+                <input
+                    type="password"
+                    name="password"
+                    required
+                >
+
+
+                <button
+                    class="primary full"
+                    type="submit"
+                >
+                    ＋ Admin hozzáadása
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="box">
+
+            <h3>
+                Meglévő adminok
+            </h3>
+
+
+            {% for admin in admins %}
+
+            <div
+                class="unmatched-member"
+            >
+
+                <div>
+
+                    <b>
+                        {{ admin.username }}
+                    </b>
+
+                    <small>
+                        Létrehozva:
+                        {{ admin.created_at }}
+                    </small>
+
+                </div>
+
+
+                <div>
+
+                    {% if admin.username != current_username %}
+
+                    <form
+                        method="post"
+                        action="{{ url_for('delete_admin', admin_id=admin.id) }}"
+                        class="inline"
+                        onsubmit="return confirm('Biztosan törlöd ezt az admint?')"
+                    >
+
+                        <button
+                            class="icon delete"
+                            type="submit"
+                            title="Admin törlése"
+                        >
+                            🗑
+                        </button>
+
+                    </form>
+
+                    {% else %}
+
+                    <span class="muted">
+                        Jelenlegi admin
+                    </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <p class="muted">
+                Nincs admin.
+            </p>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
 <!-- =====================================================
      BIZTONSÁGI MENTÉS VISSZAÁLLÍTÁSA
 ====================================================== -->
@@ -635,7 +792,9 @@
                 value="{{ selected_month }}"
             >
 
-            <label>Mentési fájl</label>
+            <label>
+                Mentési fájl
+            </label>
 
             <input
                 type="file"
@@ -656,6 +815,7 @@
     </div>
 
 </div>
+
 
 
 <!-- =====================================================
@@ -695,7 +855,9 @@
             >
 
 
-            <label>Név</label>
+            <label>
+                Név
+            </label>
 
             <input
                 type="text"
@@ -704,7 +866,9 @@
             >
 
 
-            <label>Karakter ID</label>
+            <label>
+                Karakter ID
+            </label>
 
             <input
                 type="text"
@@ -713,7 +877,9 @@
             >
 
 
-            <label>Fizetési státusz</label>
+            <label>
+                Fizetési státusz
+            </label>
 
             <select
                 name="payment_status"
@@ -736,7 +902,9 @@
             </select>
 
 
-            <label>Fizetés dátuma</label>
+            <label>
+                Fizetés dátuma
+            </label>
 
             <input
                 type="date"
@@ -798,7 +966,9 @@
             >
 
 
-            <label>Név</label>
+            <label>
+                Név
+            </label>
 
             <input
                 id="editName"
@@ -807,7 +977,9 @@
             >
 
 
-            <label>Karakter ID</label>
+            <label>
+                Karakter ID
+            </label>
 
             <input
                 id="editCharacterId"
@@ -816,7 +988,9 @@
             >
 
 
-            <label>Fizetési státusz</label>
+            <label>
+                Fizetési státusz
+            </label>
 
             <select
                 name="payment_status"
@@ -839,7 +1013,9 @@
             </select>
 
 
-            <label>Fizetés dátuma</label>
+            <label>
+                Fizetés dátuma
+            </label>
 
             <input
                 type="date"
@@ -868,14 +1044,11 @@
 
 <script>
 
-
 const loggedIn =
     {{ 'true' if logged_in else 'false' }};
 
-
 const selectedMonth =
     "{{ selected_month }}";
-
 
 
 function changeMonth(offset) {
@@ -883,17 +1056,13 @@ function changeMonth(offset) {
     const parts =
         selectedMonth.split("-");
 
-
     let year =
         Number(parts[0]);
-
 
     let month =
         Number(parts[1]);
 
-
     month += offset;
-
 
     if (month < 1) {
 
@@ -902,7 +1071,6 @@ function changeMonth(offset) {
 
     }
 
-
     if (month > 12) {
 
         month = 1;
@@ -910,24 +1078,20 @@ function changeMonth(offset) {
 
     }
 
-
     const newMonth =
         year +
         "-" +
         String(month).padStart(2, "0");
-
 
     const params =
         new URLSearchParams(
             window.location.search
         );
 
-
     params.set(
         "month",
         newMonth
     );
-
 
     window.location.href =
         "/?" +
@@ -936,12 +1100,10 @@ function changeMonth(offset) {
 }
 
 
-
 function goCurrentMonth() {
 
     const now =
         new Date();
-
 
     const currentMonth =
         now.getFullYear() +
@@ -950,25 +1112,21 @@ function goCurrentMonth() {
             now.getMonth() + 1
         ).padStart(2, "0");
 
-
     const params =
         new URLSearchParams(
             window.location.search
         );
-
 
     params.set(
         "month",
         currentMonth
     );
 
-
     window.location.href =
         "/?" +
         params.toString();
 
 }
-
 
 
 function updateAddPaymentStatus() {
@@ -982,19 +1140,16 @@ function updateAddPaymentStatus() {
                 .value
         );
 
-
     const date =
         document.getElementById(
             "addPaymentDate"
         );
-
 
     if (!date) {
 
         return;
 
     }
-
 
     if (status === 2) {
 
@@ -1010,7 +1165,6 @@ function updateAddPaymentStatus() {
     }
 
 }
-
 
 
 function updateEditPaymentStatus() {
@@ -1024,19 +1178,16 @@ function updateEditPaymentStatus() {
                 .value
         );
 
-
     const date =
         document.getElementById(
             "editPaymentDate"
         );
-
 
     if (!date) {
 
         return;
 
     }
-
 
     if (status === 2) {
 
@@ -1054,21 +1205,27 @@ function updateEditPaymentStatus() {
 }
 
 
-
 function openRestore() {
 
     if (!loggedIn) {
 
-        window.location.href = "/login";
+        window.location.href =
+            "/login";
+
         return;
 
     }
 
-    const modal = document.getElementById("restoreModal");
+    const modal =
+        document.getElementById(
+            "restoreModal"
+        );
 
     if (modal) {
 
-        modal.classList.add("show");
+        modal.classList.add(
+            "show"
+        );
 
     }
 
@@ -1077,11 +1234,61 @@ function openRestore() {
 
 function closeRestore() {
 
-    const modal = document.getElementById("restoreModal");
+    const modal =
+        document.getElementById(
+            "restoreModal"
+        );
 
     if (modal) {
 
-        modal.classList.remove("show");
+        modal.classList.remove(
+            "show"
+        );
+
+    }
+
+}
+
+
+function openAdminManager() {
+
+    if (!loggedIn) {
+
+        window.location.href =
+            "/login";
+
+        return;
+
+    }
+
+    const modal =
+        document.getElementById(
+            "adminModal"
+        );
+
+    if (modal) {
+
+        modal.classList.add(
+            "show"
+        );
+
+    }
+
+}
+
+
+function closeAdminManager() {
+
+    const modal =
+        document.getElementById(
+            "adminModal"
+        );
+
+    if (modal) {
+
+        modal.classList.remove(
+            "show"
+        );
 
     }
 
@@ -1099,19 +1306,16 @@ function openAdd() {
 
     }
 
-
     const modal =
         document.getElementById(
             "addModal"
         );
-
 
     if (!modal) {
 
         return;
 
     }
-
 
     document
         .getElementById(
@@ -1120,12 +1324,10 @@ function openAdd() {
         .value =
         "0";
 
-
     const dateInput =
         document.getElementById(
             "addPaymentDate"
         );
-
 
     if (dateInput) {
 
@@ -1137,13 +1339,11 @@ function openAdd() {
 
     }
 
-
     modal.classList.add(
         "show"
     );
 
 }
-
 
 
 function closeAdd() {
@@ -1152,7 +1352,6 @@ function closeAdd() {
         document.getElementById(
             "addModal"
         );
-
 
     if (modal) {
 
@@ -1163,7 +1362,6 @@ function closeAdd() {
     }
 
 }
-
 
 
 async function editMember(id) {
@@ -1177,7 +1375,6 @@ async function editMember(id) {
 
     }
 
-
     try {
 
         const response =
@@ -1190,18 +1387,17 @@ async function editMember(id) {
                 )
             );
 
-
         const text =
             await response.text();
 
-
         let m;
-
 
         try {
 
             m =
-                JSON.parse(text);
+                JSON.parse(
+                    text
+                );
 
         }
 
@@ -1212,14 +1408,12 @@ async function editMember(id) {
                 text
             );
 
-
             throw new Error(
                 "A szerver hibás választ adott. HTTP státusz: " +
                 response.status
             );
 
         }
-
 
         if (!response.ok) {
 
@@ -1230,7 +1424,6 @@ async function editMember(id) {
 
         }
 
-
         document
             .getElementById(
                 "editName"
@@ -1238,14 +1431,12 @@ async function editMember(id) {
             .value =
             m.name || "";
 
-
         document
             .getElementById(
                 "editCharacterId"
             )
             .value =
             m.character_id || "";
-
 
         document
             .getElementById(
@@ -1256,7 +1447,6 @@ async function editMember(id) {
                 m.payment_status || 0
             );
 
-
         document
             .getElementById(
                 "editPaymentDate"
@@ -1264,14 +1454,12 @@ async function editMember(id) {
             .value =
             m.payment_date || "";
 
-
         document
             .getElementById(
                 "editMonth"
             )
             .value =
             selectedMonth;
-
 
         document
             .getElementById(
@@ -1282,9 +1470,7 @@ async function editMember(id) {
             id +
             "/edit";
 
-
         updateEditPaymentStatus();
-
 
         document
             .getElementById(
@@ -1302,7 +1488,6 @@ async function editMember(id) {
             error
         );
 
-
         alert(
             error.message ||
             "Nem sikerült betölteni a tag adatait."
@@ -1313,14 +1498,12 @@ async function editMember(id) {
 }
 
 
-
 function closeEdit() {
 
     const modal =
         document.getElementById(
             "editModal"
         );
-
 
     if (modal) {
 
@@ -1333,14 +1516,12 @@ function closeEdit() {
 }
 
 
-
 function closeDetail() {
 
     const details =
         document.getElementById(
             "details"
         );
-
 
     if (details) {
 
@@ -1351,7 +1532,6 @@ function closeDetail() {
     }
 
 }
-
 
 
 async function showMember(id) {
@@ -1368,18 +1548,17 @@ async function showMember(id) {
                 )
             );
 
-
         const text =
             await response.text();
 
-
         let m;
-
 
         try {
 
             m =
-                JSON.parse(text);
+                JSON.parse(
+                    text
+                );
 
         }
 
@@ -1390,14 +1569,12 @@ async function showMember(id) {
                 text
             );
 
-
             throw new Error(
                 "A szerver hibás választ adott. HTTP státusz: " +
                 response.status
             );
 
         }
-
 
         if (!response.ok) {
 
@@ -1408,7 +1585,6 @@ async function showMember(id) {
 
         }
 
-
         document
             .getElementById(
                 "details"
@@ -1417,10 +1593,8 @@ async function showMember(id) {
                 "open"
             );
 
-
         let paymentText =
             "🔴 Nem fizetve";
-
 
         if (
             Number(
@@ -1444,14 +1618,11 @@ async function showMember(id) {
 
         }
 
-
         let logs =
             "";
 
-
         const logItems =
             m.logs || [];
-
 
         for (
             const x of logItems
@@ -1499,13 +1670,11 @@ async function showMember(id) {
 
                     </div>
 
-
                     <span>
                         ${escapeHtml(
                             x.reason || ""
                         )}
                     </span>
-
 
                     <small>
                         ${
@@ -1526,7 +1695,6 @@ async function showMember(id) {
 
         }
 
-
         if (!logs) {
 
             logs =
@@ -1534,10 +1702,8 @@ async function showMember(id) {
 
         }
 
-
         let editorContent =
             "";
-
 
         if (m.logged_in) {
 
@@ -1549,7 +1715,6 @@ async function showMember(id) {
                         ⚠ Hibapont hozzáadása
                     </h3>
 
-
                     <form
                         method="post"
                         action="/member/${m.id}/penalty"
@@ -1560,7 +1725,6 @@ async function showMember(id) {
                             name="month"
                             value="${selectedMonth}"
                         >
-
 
                         <label>
                             Hibapontok száma
@@ -1574,7 +1738,6 @@ async function showMember(id) {
                             required
                         >
 
-
                         <label>
                             Indoklás
                         </label>
@@ -1584,7 +1747,6 @@ async function showMember(id) {
                             placeholder="Indoklás / megjegyzés..."
                             required
                         ></textarea>
-
 
                         <button
                             class="primary full"
@@ -1605,7 +1767,6 @@ async function showMember(id) {
                         Discord kapcsolat szerkesztése
                     </h3>
 
-
                     <form
                         method="post"
                         action="/member/${m.id}/discord"
@@ -1617,7 +1778,6 @@ async function showMember(id) {
                             value="${selectedMonth}"
                         >
 
-
                         <input
                             name="discord_username"
                             placeholder="Discord név"
@@ -1626,7 +1786,6 @@ async function showMember(id) {
                             )}"
                         >
 
-
                         <input
                             name="discord_user_id"
                             placeholder="Discord ID"
@@ -1634,7 +1793,6 @@ async function showMember(id) {
                                 m.discord_user_id || ""
                             )}"
                         >
-
 
                         <button
                             class="secondary full"
@@ -1650,7 +1808,6 @@ async function showMember(id) {
             `;
 
         }
-
 
         document
             .getElementById(
@@ -1673,13 +1830,11 @@ async function showMember(id) {
 
                     </div>
 
-
                     <h2>
                         ${escapeHtml(
                             m.name || ""
                         )}
                     </h2>
-
 
                     <p>
 
@@ -1703,11 +1858,9 @@ async function showMember(id) {
                         Fizetési státusz
                     </h3>
 
-
                     <p>
                         ${paymentText}
                     </p>
-
 
                     <p>
 
@@ -1718,7 +1871,6 @@ async function showMember(id) {
                         </b>
 
                     </p>
-
 
                     <p>
 
@@ -1753,7 +1905,6 @@ async function showMember(id) {
                         Hibapont összesen
                     </h3>
 
-
                     <div class="bigpoints">
 
                         ${m.total_points || 0}
@@ -1774,7 +1925,6 @@ async function showMember(id) {
                         Discord profil
                     </h3>
 
-
                     ${
                         m.discord_username
 
@@ -1791,7 +1941,6 @@ async function showMember(id) {
                                 </b>
 
                             </p>
-
 
                             <small>
 
@@ -1830,7 +1979,6 @@ async function showMember(id) {
                         ⚠ Hibapont napló
                     </h3>
 
-
                     ${logs}
 
                 </div>
@@ -1844,7 +1992,6 @@ async function showMember(id) {
         console.error(
             error
         );
-
 
         alert(
             error.message ||
@@ -1872,18 +2019,15 @@ async function syncDiscord() {
 
     }
 
-
     const button =
         document.getElementById(
             "discordSyncButton"
         );
 
-
     const result =
         document.getElementById(
             "syncResult"
         );
-
 
     if (!button || !result) {
 
@@ -1891,18 +2035,14 @@ async function syncDiscord() {
 
     }
 
-
     button.disabled =
         true;
-
 
     button.textContent =
         "⏳ Szinkronizálás...";
 
-
     result.innerHTML =
         '<p class="muted">Discord tagok lekérése folyamatban...</p>';
-
 
     try {
 
@@ -1918,13 +2058,10 @@ async function syncDiscord() {
                 }
             );
 
-
         const text =
             await response.text();
 
-
         let data;
-
 
         try {
 
@@ -1944,7 +2081,6 @@ async function syncDiscord() {
 
         }
 
-
         if (
             !response.ok ||
             !data.success
@@ -1957,7 +2093,6 @@ async function syncDiscord() {
 
         }
 
-
         result.innerHTML = `
 
             <div class="sync-success">
@@ -1965,7 +2100,6 @@ async function syncDiscord() {
                 <b>
                     ✅ Discord szinkronizálás kész
                 </b>
-
 
                 <p>
 
@@ -1975,25 +2109,19 @@ async function syncDiscord() {
                         ${data.matched || 0}
                     </b>
 
-
                     <br>
-
 
                     Nem található:
 
                     <b>
-
                         ${
                             data.not_found
                             ? data.not_found.length
                             : 0
                         }
-
                     </b>
 
-
                     <br>
-
 
                     Discordon van, de nincs a Névsorban:
 
@@ -2007,9 +2135,7 @@ async function syncDiscord() {
 
         `;
 
-
         await loadUnmatchedDiscord();
-
 
         setTimeout(
             function() {
@@ -2028,7 +2154,6 @@ async function syncDiscord() {
             "Discord szinkron hiba:",
             error
         );
-
 
         result.innerHTML = `
 
@@ -2052,7 +2177,6 @@ async function syncDiscord() {
         button.disabled =
             false;
 
-
         button.textContent =
             "🔄 Discord szinkronizálás";
 
@@ -2073,17 +2197,14 @@ async function loadUnmatchedDiscord() {
             "unmatchedDiscordList"
         );
 
-
     if (!container) {
 
         return;
 
     }
 
-
     container.innerHTML =
         '<p class="muted">Lista betöltése...</p>';
-
 
     try {
 
@@ -2097,13 +2218,10 @@ async function loadUnmatchedDiscord() {
                 }
             );
 
-
         const text =
             await response.text();
 
-
         let data;
-
 
         try {
 
@@ -2123,7 +2241,6 @@ async function loadUnmatchedDiscord() {
 
         }
 
-
         if (!response.ok) {
 
             throw new Error(
@@ -2133,10 +2250,8 @@ async function loadUnmatchedDiscord() {
 
         }
 
-
         const members =
             data.members || [];
-
 
         if (members.length === 0) {
 
@@ -2147,10 +2262,8 @@ async function loadUnmatchedDiscord() {
 
         }
 
-
         let html =
             "";
-
 
         for (
             const member of members
@@ -2172,7 +2285,6 @@ async function loadUnmatchedDiscord() {
 
                         </b>
 
-
                         <small>
 
                             @${escapeHtml(
@@ -2183,7 +2295,6 @@ async function loadUnmatchedDiscord() {
                         </small>
 
                     </div>
-
 
                     <span class="muted">
 
@@ -2202,7 +2313,6 @@ async function loadUnmatchedDiscord() {
 
         }
 
-
         container.innerHTML =
             html;
 
@@ -2214,7 +2324,6 @@ async function loadUnmatchedDiscord() {
             "Discord lista hiba:",
             error
         );
-
 
         container.innerHTML = `
 
@@ -2248,7 +2357,6 @@ function escapeHtml(value) {
             "div"
         );
 
-
     div.textContent =
         value === null ||
         value === undefined
@@ -2258,7 +2366,6 @@ function escapeHtml(value) {
         : String(
             value
         );
-
 
     return div.innerHTML;
 
@@ -2279,18 +2386,20 @@ document.addEventListener(
                 "addModal"
             );
 
-
         const editModal =
             document.getElementById(
                 "editModal"
             );
-
 
         const restoreModal =
             document.getElementById(
                 "restoreModal"
             );
 
+        const adminModal =
+            document.getElementById(
+                "adminModal"
+            );
 
         if (
             addModal &&
@@ -2301,7 +2410,6 @@ document.addEventListener(
 
         }
 
-
         if (
             editModal &&
             event.target === editModal
@@ -2311,13 +2419,21 @@ document.addEventListener(
 
         }
 
-
         if (
             restoreModal &&
             event.target === restoreModal
         ) {
 
             closeRestore();
+
+        }
+
+        if (
+            adminModal &&
+            event.target === adminModal
+        ) {
+
+            closeAdminManager();
 
         }
 
