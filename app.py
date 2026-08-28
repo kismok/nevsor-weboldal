@@ -218,67 +218,13 @@ def month_display(month_value):
 # ADATBÁZIS
 # =========================================================
 
-# =========================================================
-# TARTÓS ADATBÁZIS
-# =========================================================
-# A DATABASE_PATH környezeti változó elsőbbséget élvez.
-# Alapértelmezésben /data/nevsor.db-t használunk, mert a /tmp
-# tartalma konténer újraépítéskor/deploykor elveszhet.
-#
-# A /data könyvtárnak a More-ben PERZISZTENS tárhelyhez kell
-# tartoznia. A kód induláskor egyszer megpróbálja átmásolni a
-# korábbi /tmp/nevsor.db-t, ha az új hely még nem létezik.
-#
-
-CONFIGURED_DB_PATH = os.environ.get(
+DB_PATH = os.environ.get(
     "DATABASE_PATH",
-    ""
-).strip()
-
-if CONFIGURED_DB_PATH:
-    DB_PATH = CONFIGURED_DB_PATH
-else:
-    DB_PATH = "/data/nevsor.db"
-
-    old_db_path = "/tmp/nevsor.db"
-
-    try:
-        os.makedirs(
-            os.path.dirname(DB_PATH) or ".",
-            exist_ok=True
-        )
-
-        if (
-            not os.path.exists(DB_PATH)
-            and os.path.isfile(old_db_path)
-        ):
-            shutil.copy2(
-                old_db_path,
-                DB_PATH
-            )
-            print(
-                "✅ Régi /tmp/nevsor.db átmásolva a tartós adatbázisba: "
-                f"{DB_PATH}"
-            )
-
-    except Exception as e:
-
-        print(
-            "⚠️ A tartós adatbázis könyvtára nem hozható létre: "
-            f"{repr(e)}"
-        )
+    "/tmp/nevsor.db"
+)
 
 
 def get_connection():
-
-    parent_dir = os.path.dirname(DB_PATH)
-
-    if parent_dir:
-
-        os.makedirs(
-            parent_dir,
-            exist_ok=True
-        )
 
     conn = sqlite3.connect(
         DB_PATH,
