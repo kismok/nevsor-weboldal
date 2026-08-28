@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="hu">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Kocsi lista</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <style>
+        .car-price {
+            white-space: nowrap;
+        }
+
+        .car-services {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .car-service {
+            padding: 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .car-service b {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .category-preview {
+            margin-top: 15px;
+        }
+
+        .cars-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .cars-top-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .cars-note {
+            margin-top: 8px;
+        }
+
+        @media (max-width: 1100px) {
+            .car-services {
+                grid-template-columns: repeat(2, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 650px) {
+            .car-services {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         BAL OLDALI MENÜ
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            ▣ <span>NÉVSOR</span>
+        </div>
+
+        <nav>
+
+            <a href="/">
+                ☷ Névsor
+            </a>
+
+            <a href="/penalty-log">
+                ⚠ Hibapont napló
+            </a>
+
+            <a
+                class="active"
+                href="/cars"
+            >
+                🚗 Kocsi lista
+            </a>
+
+            {% if logged_in %}
+
+            <a href="/">
+                ◉ Discord kapcsolatok
+            </a>
+
+            {% endif %}
+
+        </nav>
+
+    </aside>
+
+
+    <!-- =====================================================
+         FŐ TARTALOM
+    ====================================================== -->
+
+    <main>
+
+        <header>
+
+            <div class="hamb">
+                ☰
+            </div>
+
+            <div
+                style="
+                    flex: 1;
+                    padding-left: 12px;
+                    font-weight: 700;
+                "
+            >
+                🚗 Kocsi lista
+            </div>
+
+            <div class="auth-buttons">
+
+                {% if logged_in %}
+
+                <span class="logged-user">
+                    🔓 Szerkesztő mód
+                </span>
+
+                <a
+                    href="/logout"
+                    class="secondary"
+                >
+                    Kijelentkezés
+                </a>
+
+                {% else %}
+
+                <a
+                    href="/login"
+                    class="secondary"
+                >
+                    🔒 Bejelentkezés
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </header>
+
+
+        <section class="content">
+
+            <!-- =====================================================
+                 FEJLÉC
+            ====================================================== -->
+
+            <div class="title-row">
+
+                <div>
+
+                    <h1>
+                        🚗 KOCSI LISTA
+                    </h1>
+
+                    <p>
+                        Járműtípusok, kategóriák és árak
+                    </p>
+
+                </div>
+
+
+                {% if logged_in %}
+
+                <div class="cars-top-actions">
+
+                    <a
+                        href="/cars/backup/download"
+                        class="secondary"
+                    >
+                        💾 Kocsi lista mentése
+                    </a>
+
+                    <button
+                        class="secondary"
+                        type="button"
+                        onclick="openCarsRestore()"
+                    >
+                        ♻️ Visszatöltés
+                    </button>
+
+                    <button
+                        class="primary"
+                        type="button"
+                        onclick="openCarAdd()"
+                    >
+                        ＋ Új kocsi
+                    </button>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- =====================================================
+                 FIX KATEGÓRIA DÍJAK
+            ====================================================== -->
+
+            <div class="card">
+
+                <div style="padding: 18px;">
+
+                    <h2>
+                        💰 Kategória díjak
+                    </h2>
+
+                    <div class="car-services">
+
+                        <div class="car-service">
+
+                            <b>
+                                Közép kategória
+                            </b>
+
+                            <div>
+                                Elemek: 45 000 $
+                            </div>
+
+                            <div>
+                                Motor: 55 000 $
+                            </div>
+
+                            <div>
+                                Munkadíj: 80 000 $
+                            </div>
+
+                            <div>
+                                21:00 után: 120 000 $
+                            </div>
+
+                        </div>
+
+
+                        <div class="car-service">
+
+                            <b>
+                                Felső kategória
+                            </b>
+
+                            <div>
+                                Elemek: 65 000 $
+                            </div>
+
+                            <div>
+                                Motor: 75 000 $
+                            </div>
+
+                            <div>
+                                Munkadíj: 80 000 $
+                            </div>
+
+                            <div>
+                                21:00 után: 120 000 $
+                            </div>
+
+                        </div>
+
+
+                        <div class="car-service">
+
+                            <b>
+                                Limitált / Egyedi
+                            </b>
+
+                            <div>
+                                Elemek: 75 000 $
+                            </div>
+
+                            <div>
+                                Motor: 85 000 $
+                            </div>
+
+                            <div>
+                                Munkadíj: 80 000 $
+                            </div>
+
+                            <div>
+                                21:00 után: 120 000 $
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================================
+                 KOCSIK
+            ====================================================== -->
+
+            <div class="card">
+
+                <div class="table-wrap">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Típus</th>
+                                <th>Kategória</th>
+                                <th>Ár</th>
+
+                                {% if logged_in %}
+                                <th>Műveletek</th>
+                                {% endif %}
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for car in cars %}
+
+                            <tr>
+
+                                <td>
+                                    <b>
+                                        {{ car["car_type"] }}
+                                    </b>
+                                </td>
+
+                                <td>
+
+                                    {% if car["category"] == "kozep" %}
+                                        Közép kategória
+                                    {% elif car["category"] == "felso" %}
+                                        Felső kategória
+                                    {% else %}
+                                        Limitált / Egyedi
+                                    {% endif %}
+
+                                </td>
+
+                                <td class="car-price">
+                                    {{ "{:,.0f}".format(car["price"]).replace(",", " ") }} $
+                                </td>
+
+                                {% if logged_in %}
+
+                                <td>
+
+                                    <div class="cars-actions">
+
+                                        <button
+                                            class="icon edit"
+                                            type="button"
+                                            onclick="openCarEdit(
+                                                {{ car['id'] }},
+                                                {{ car['car_type']|tojson }},
+                                                {{ car['category']|tojson }},
+                                                {{ car['price'] }}
+                                            )"
+                                            title="Szerkesztés"
+                                        >
+                                            ✎
+                                        </button>
+
+                                        <form
+                                            method="post"
+                                            action="/cars/{{ car['id'] }}/delete"
+                                            class="inline"
+                                            onsubmit="return confirm('Biztosan törlöd ezt a kocsit?')"
+                                        >
+
+                                            <button
+                                                class="icon delete"
+                                                type="submit"
+                                                title="Törlés"
+                                            >
+                                                🗑
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </td>
+
+                                {% endif %}
+
+                            </tr>
+
+                            {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="{% if logged_in %}4{% else %}3{% endif %}"
+                                    class="empty"
+                                >
+                                    Még nincs felvitt kocsi.
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+
+{% if logged_in %}
+
+<!-- =====================================================
+     ÚJ KOCSI / SZERKESZTÉS
+====================================================== -->
+
+<div
+    class="modal"
+    id="carModal"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="close"
+            type="button"
+            onclick="closeCarModal()"
+        >
+            ×
+        </button>
+
+        <h2 id="carModalTitle">
+            ＋ Új kocsi hozzáadása
+        </h2>
+
+
+        <form
+            method="post"
+            id="carForm"
+            action="/cars/add"
+        >
+
+            <label>
+                Típus
+            </label>
+
+            <input
+                type="text"
+                name="car_type"
+                id="carType"
+                placeholder="Pl. BMW M5"
+                required
+            >
+
+
+            <label>
+                Kategória
+            </label>
+
+            <select
+                name="category"
+                id="carCategory"
+                onchange="updateCarCategoryInfo()"
+                required
+            >
+
+                <option value="kozep">
+                    Közép kategória
+                </option>
+
+                <option value="felso">
+                    Felső kategória
+                </option>
+
+                <option value="limitalt">
+                    Limitált / Egyedi
+                </option>
+
+            </select>
+
+
+            <label>
+                Ár
+            </label>
+
+            <input
+                type="number"
+                name="price"
+                id="carPrice"
+                min="0"
+                step="1"
+                placeholder="Pl. 25000000"
+                required
+            >
+
+
+            <div
+                class="category-preview"
+                id="carCategoryInfo"
+            ></div>
+
+
+            <button
+                class="primary full"
+                type="submit"
+            >
+                💾 Mentés
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     KOCSI LISTA VISSZATÖLTÉS
+====================================================== -->
+
+<div
+    class="modal"
+    id="carsRestoreModal"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="close"
+            type="button"
+            onclick="closeCarsRestore()"
+        >
+            ×
+        </button>
+
+        <h2>
+            ♻️ Kocsi lista visszatöltése
+        </h2>
+
+        <p class="muted">
+            A kiválasztott mentés csak a Kocsi lista adatait állítja vissza.
+            A Névsor adataihoz nem nyúl.
+        </p>
+
+        <form
+            method="post"
+            action="/cars/backup/restore"
+            enctype="multipart/form-data"
+            onsubmit="return confirm('Biztosan visszatöltöd ezt a kocsi lista mentést?')"
+        >
+
+            <label>
+                Mentési fájl
+            </label>
+
+            <input
+                type="file"
+                name="backup_file"
+                accept=".db,.json,application/octet-stream,application/json"
+                required
+            >
+
+            <button
+                class="primary full"
+                type="submit"
+            >
+                ♻️ Visszatöltés
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+
+<script>
+
+const loggedIn =
+    {{ 'true' if logged_in else 'false' }};
+
+
+const CATEGORY_DATA = {
+
+    kozep: {
+        name: "Közép kategória",
+        elements: "45 000 $",
+        engine: "55 000 $",
+        labor: "80 000 $",
+        after21: "120 000 $"
+    },
+
+    felso: {
+        name: "Felső kategória",
+        elements: "65 000 $",
+        engine: "75 000 $",
+        labor: "80 000 $",
+        after21: "120 000 $"
+    },
+
+    limitalt: {
+        name: "Limitált / Egyedi",
+        elements: "75 000 $",
+        engine: "85 000 $",
+        labor: "80 000 $",
+        after21: "120 000 $"
+    }
+
+};
+
+
+function updateCarCategoryInfo() {
+
+    const select =
+        document.getElementById(
+            "carCategory"
+        );
+
+    const container =
+        document.getElementById(
+            "carCategoryInfo"
+        );
+
+    if (!select || !container) {
+
+        return;
+
+    }
+
+    const data =
+        CATEGORY_DATA[
+            select.value
+        ];
+
+    if (!data) {
+
+        container.innerHTML =
+            "";
+
+        return;
+
+    }
+
+    container.innerHTML = `
+
+        <div class="box">
+
+            <h3>
+                ${escapeHtml(data.name)}
+            </h3>
+
+            <p>
+                Elemek:
+                <b>${escapeHtml(data.elements)}</b>
+            </p>
+
+            <p>
+                Motor:
+                <b>${escapeHtml(data.engine)}</b>
+            </p>
+
+            <p>
+                Munkadíj:
+                <b>${escapeHtml(data.labor)}</b>
+            </p>
+
+            <p>
+                21:00 után:
+                <b>${escapeHtml(data.after21)}</b>
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+
+function openCarAdd() {
+
+    if (!loggedIn) {
+
+        window.location.href =
+            "/login";
+
+        return;
+
+    }
+
+    const modal =
+        document.getElementById(
+            "carModal"
+        );
+
+    const form =
+        document.getElementById(
+            "carForm"
+        );
+
+    const title =
+        document.getElementById(
+            "carModalTitle"
+        );
+
+    const type =
+        document.getElementById(
+            "carType"
+        );
+
+    const category =
+        document.getElementById(
+            "carCategory"
+        );
+
+    const price =
+        document.getElementById(
+            "carPrice"
+        );
+
+    if (!modal) return;
+
+    form.action =
+        "/cars/add";
+
+    title.textContent =
+        "＋ Új kocsi hozzáadása";
+
+    type.value =
+        "";
+
+    category.value =
+        "kozep";
+
+    price.value =
+        "";
+
+    updateCarCategoryInfo();
+
+    modal.classList.add(
+        "show"
+    );
+
+}
+
+
+function openCarEdit(
+    id,
+    carType,
+    category,
+    price
+) {
+
+    if (!loggedIn) {
+
+        window.location.href =
+            "/login";
+
+        return;
+
+    }
+
+    const modal =
+        document.getElementById(
+            "carModal"
+        );
+
+    const form =
+        document.getElementById(
+            "carForm"
+        );
+
+    const title =
+        document.getElementById(
+            "carModalTitle"
+        );
+
+    const type =
+        document.getElementById(
+            "carType"
+        );
+
+    const categoryInput =
+        document.getElementById(
+            "carCategory"
+        );
+
+    const priceInput =
+        document.getElementById(
+            "carPrice"
+        );
+
+    if (!modal) return;
+
+    form.action =
+        "/cars/" +
+        id +
+        "/edit";
+
+    title.textContent =
+        "✎ Kocsi szerkesztése";
+
+    type.value =
+        carType || "";
+
+    categoryInput.value =
+        category || "kozep";
+
+    priceInput.value =
+        price || 0;
+
+    updateCarCategoryInfo();
+
+    modal.classList.add(
+        "show"
+    );
+
+}
+
+
+function closeCarModal() {
+
+    const modal =
+        document.getElementById(
+            "carModal"
+        );
+
+    if (modal) {
+
+        modal.classList.remove(
+            "show"
+        );
+
+    }
+
+}
+
+
+function openCarsRestore() {
+
+    if (!loggedIn) {
+
+        window.location.href =
+            "/login";
+
+        return;
+
+    }
+
+    const modal =
+        document.getElementById(
+            "carsRestoreModal"
+        );
+
+    if (modal) {
+
+        modal.classList.add(
+            "show"
+        );
+
+    }
+
+}
+
+
+function closeCarsRestore() {
+
+    const modal =
+        document.getElementById(
+            "carsRestoreModal"
+        );
+
+    if (modal) {
+
+        modal.classList.remove(
+            "show"
+        );
+
+    }
+
+}
+
+
+function escapeHtml(value) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        value === null ||
+        value === undefined
+            ? ""
+            : String(value);
+
+    return div.innerHTML;
+
+}
+
+
+document.addEventListener(
+    "click",
+    function(event) {
+
+        const carModal =
+            document.getElementById(
+                "carModal"
+            );
+
+        const restoreModal =
+            document.getElementById(
+                "carsRestoreModal"
+            );
+
+        if (
+            carModal &&
+            event.target === carModal
+        ) {
+
+            closeCarModal();
+
+        }
+
+        if (
+            restoreModal &&
+            event.target === restoreModal
+        ) {
+
+            closeCarsRestore();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        updateCarCategoryInfo();
+
+    }
+);
+
+</script>
+
+</body>
+</html>
