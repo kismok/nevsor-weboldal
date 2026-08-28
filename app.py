@@ -311,6 +311,15 @@ def init_db():
             REFERENCES members(id)
             ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS cars (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        car_type TEXT NOT NULL,
+        category TEXT NOT NULL,
+        price INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
     """)
 
     columns = conn.execute(
@@ -639,6 +648,628 @@ def change_admin_password(admin_id):
 
     return redirect(
         url_for("index")
+    )
+
+
+# =========================================================
+# KOCSI LISTA
+# =========================================================
+
+CAR_CATEGORIES = (
+    "Közép kategória",
+    "Felső kategória",
+    "Limitált / Egyedi"
+)
+
+CAR_CATEGORY_PRICES = {
+    "Közép kategória": {
+        "elements": 45000,
+        "engine": 55000,
+        "labor": 80000,
+        "after_21": 120000
+    },
+    "Felső kategória": {
+        "elements": 65000,
+        "engine": 75000,
+        "labor": 80000,
+        "after_21": 120000
+    },
+    "Limitált / Egyedi": {
+        "elements": 75000,
+        "engine": 85000,
+        "labor": 80000,
+        "after_21": 120000
+    }
+}
+
+
+def normalize_car_category(value):
+
+    value = str(
+        value or ""
+    ).strip()
+
+    aliases = {
+        "Limitált/Egyedi": "Limitált / Egyedi",
+        "Limitált / Egyedi": "Limitált / Egyedi",
+        "Közép": "Közép kategória",
+        "Felső": "Felső kategória"
+    }
+
+    value = aliases.get(
+        value,
+        value
+    )
+
+    if value not in CAR_CATEGORIES:
+
+        return CAR_CATEGORIES[0]
+
+    return value
+
+
+def parse_car_price(value):
+
+    value = str(
+        value or "0"
+    ).strip()
+
+    value = value.replace(
+        ".",
+        ""
+    )
+
+    value = re.sub(
+        r"[^0-9-]",
+        "",
+        value
+    )
+
+    try:
+
+        price = int(value)
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        price = 0
+
+    if price < 0:
+
+        price = 0
+
+    return price
+
+
+@app.route(
+    "/cars"
+)
+def cars():
+
+    q = request.args.get(
+        "q",
+        ""
+    ).strip()
+
+    query = """
+        SELECT
+            id,
+            car_type,
+            category,
+            price,
+            created_at,
+            updated_at
+        FROM cars
+    """
+
+    params = []
+
+    if q:
+
+        like = f"%{q}%"
+
+        query += """
+            WHERE
+                car_type LIKE ?
+                OR category LIKE ?
+        """
+
+        params.extend([
+            like,
+            like
+        ])
+
+    query += """
+        ORDER BY
+            category COLLATE NOCASE,
+            car_type COLLATE NOCASE,
+            id
+    """
+
+    cars_data = db().execute(
+        query,
+        params
+    ).fetchall()
+
+    return render_template(
+        "cars.html",
+        cars=cars_data,
+        q=q,
+        logged_in=is_logged_in(),
+        car_categories=CAR_CATEGORIES,
+        car_category_prices=CAR_CATEGORY_PRICES
+    )
+
+
+@app.route(
+    "/car/add",
+    methods=["POST"]
+)
+def add_car():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    car_type = request.form.get(
+        "car_type",
+        ""
+    ).strip()
+
+    category = request.form.get(
+        "category",
+        ""
+    ).strip()
+
+    price = parse_car_price(
+        request.form.get(
+            "price",
+            "0"
+        )
+    )
+
+    if not car_type:
+
+        return redirect(
+            url_for("cars")
+        )
+
+    category = normalize_car_category(
+        category
+    )
+
+    now = datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+    db().execute("""
+        INSERT INTO cars
+        (
+            car_type,
+            category,
+            price,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        car_type,
+        category,
+        price,
+        now,
+        now
+    ))
+
+    db().commit()
+
+    return redirect(
+        url_for("cars")
+    )
+
+
+@app.route(
+    "/car/<int:car_id>/edit",
+    methods=["POST"]
+)
+def edit_car(car_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    car_type = request.form.get(
+        "car_type",
+        ""
+    ).strip()
+
+    category = request.form.get(
+        "category",
+        ""
+    ).strip()
+
+    price = parse_car_price(
+        request.form.get(
+            "price",
+            "0"
+        )
+    )
+
+    if not car_type:
+
+        return redirect(
+            url_for("cars")
+        )
+
+    category = normalize_car_category(
+        category
+    )
+
+    now = datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+    existing = db().execute("""
+        SELECT id
+        FROM cars
+        WHERE id = ?
+    """, (
+        car_id,
+    )).fetchone()
+
+    if not existing:
+
+        abort(404)
+
+    db().execute("""
+        UPDATE cars
+
+        SET
+            car_type = ?,
+            category = ?,
+            price = ?,
+            updated_at = ?
+
+        WHERE id = ?
+    """, (
+        car_type,
+        category,
+        price,
+        now,
+        car_id
+    ))
+
+    db().commit()
+
+    return redirect(
+        url_for("cars")
+    )
+
+
+@app.route(
+    "/car/<int:car_id>/delete",
+    methods=["POST"]
+)
+def delete_car(car_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    db().execute("""
+        DELETE FROM cars
+        WHERE id = ?
+    """, (
+        car_id,
+    ))
+
+    db().commit()
+
+    return redirect(
+        url_for("cars")
+    )
+
+
+# =========================================================
+# KOCSI LISTA MENTÉS
+# =========================================================
+
+@app.route(
+    "/cars/backup/download"
+)
+def download_cars_backup():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    source = get_connection()
+
+    try:
+
+        temp_fd, temp_path = tempfile.mkstemp(
+            suffix=".db"
+        )
+
+        os.close(temp_fd)
+
+        destination = sqlite3.connect(
+            temp_path
+        )
+
+        try:
+
+            destination.execute("""
+                CREATE TABLE cars (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    car_type TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    price INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
+            rows = source.execute("""
+                SELECT
+                    id,
+                    car_type,
+                    category,
+                    price,
+                    created_at,
+                    updated_at
+                FROM cars
+                ORDER BY id
+            """).fetchall()
+
+            destination.executemany("""
+                INSERT INTO cars
+                (
+                    id,
+                    car_type,
+                    category,
+                    price,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, [
+                tuple(row)
+                for row in rows
+            ])
+
+            destination.commit()
+
+        finally:
+
+            destination.close()
+
+        with open(
+            temp_path,
+            "rb"
+        ) as backup_file:
+
+            data = backup_file.read()
+
+    finally:
+
+        source.close()
+
+        if os.path.exists(temp_path):
+
+            os.remove(temp_path)
+
+    buffer = io.BytesIO(
+        data
+    )
+
+    filename = (
+        f"kocsi-lista-mentes-"
+        f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.db"
+    )
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/octet-stream"
+    )
+
+
+# =========================================================
+# KOCSI LISTA VISSZATÖLTÉS
+# =========================================================
+
+@app.route(
+    "/cars/backup/restore",
+    methods=["POST"]
+)
+def restore_cars_backup():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    uploaded_file = request.files.get(
+        "cars_backup_file"
+    )
+
+    if not uploaded_file or not uploaded_file.filename:
+
+        flash(
+            "❌ Nem választottál ki kocsi lista mentést."
+        )
+
+        return redirect(
+            url_for("cars")
+        )
+
+    temp_path = None
+
+    try:
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".db",
+            delete=False
+        ) as temp_file:
+
+            temp_path = temp_file.name
+
+            uploaded_file.save(
+                temp_path
+            )
+
+        test_conn = sqlite3.connect(
+            temp_path
+        )
+
+        try:
+
+            integrity = test_conn.execute(
+                "PRAGMA integrity_check"
+            ).fetchone()[0]
+
+            if integrity != "ok":
+
+                raise ValueError(
+                    "A mentési fájl sérült."
+                )
+
+            tables = {
+                row[0]
+                for row in test_conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+
+            if "cars" not in tables:
+
+                raise ValueError(
+                    "Ez nem érvényes Kocsi lista mentés."
+                )
+
+            columns = {
+                row[1]
+                for row in test_conn.execute(
+                    "PRAGMA table_info(cars)"
+                ).fetchall()
+            }
+
+            required_columns = {
+                "id",
+                "car_type",
+                "category",
+                "price",
+                "created_at",
+                "updated_at"
+            }
+
+            if not required_columns.issubset(columns):
+
+                raise ValueError(
+                    "A Kocsi lista mentés hiányos."
+                )
+
+            rows = test_conn.execute("""
+                SELECT
+                    id,
+                    car_type,
+                    category,
+                    price,
+                    created_at,
+                    updated_at
+                FROM cars
+                ORDER BY id
+            """).fetchall()
+
+        finally:
+
+            test_conn.close()
+
+        conn = db()
+
+        conn.execute(
+            "DELETE FROM cars"
+        )
+
+        conn.executemany("""
+            INSERT INTO cars
+            (
+                id,
+                car_type,
+                category,
+                price,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, [
+            (
+                row[0],
+                row[1],
+                normalize_car_category(row[2]),
+                parse_car_price(row[3]),
+                row[4],
+                row[5]
+            )
+            for row in rows
+        ])
+
+        conn.execute("""
+            DELETE FROM sqlite_sequence
+            WHERE name = 'cars'
+        """)
+
+        if rows:
+
+            conn.execute("""
+                INSERT INTO sqlite_sequence
+                    (name, seq)
+                VALUES ('cars', ?)
+            """, (
+                max(
+                    row[0]
+                    for row in rows
+                ),
+            ))
+
+        conn.commit()
+
+        flash(
+            "✅ A Kocsi lista sikeresen vissza lett töltve."
+        )
+
+    except Exception as e:
+
+        db().rollback()
+
+        print(
+            f"❌ Kocsi lista visszatöltési hiba: {repr(e)}"
+        )
+
+        flash(
+            f"❌ A Kocsi lista visszatöltése nem sikerült: {str(e)}"
+        )
+
+    finally:
+
+        if temp_path and os.path.exists(temp_path):
+
+            os.remove(temp_path)
+
+    return redirect(
+        url_for("cars")
     )
 
 
@@ -1913,6 +2544,54 @@ def export_database():
             penalty["reason"],
             penalty["created_at"]
         ])
+
+    cars_sheet = workbook.create_sheet(
+        "Kocsik"
+    )
+
+    cars_sheet.append([
+        "ID",
+        "Típus",
+        "Kategória",
+        "Ár",
+        "Létrehozva",
+        "Módosítva"
+    ])
+
+    conn = get_connection()
+
+    try:
+
+        cars_for_export = conn.execute("""
+            SELECT
+                id,
+                car_type,
+                category,
+                price,
+                created_at,
+                updated_at
+            FROM cars
+            ORDER BY
+                category COLLATE NOCASE,
+                car_type COLLATE NOCASE,
+                id
+        """).fetchall()
+
+    finally:
+
+        conn.close()
+
+    for car in cars_for_export:
+
+        cars_sheet.append([
+            car["id"],
+            car["car_type"],
+            car["category"],
+            car["price"],
+            car["created_at"],
+            car["updated_at"]
+        ])
+
 
     for sheet in workbook.worksheets:
 
