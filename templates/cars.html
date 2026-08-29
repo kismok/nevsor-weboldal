@@ -445,7 +445,7 @@
 
                                         <form
                                             method="post"
-                                            action="/cars/{{ car['id'] }}/delete"
+                                            action="/car/{{ car['id'] }}/delete"
                                             class="inline"
                                             onsubmit="return confirm('Biztosan törlöd ezt a kocsit?')"
                                         >
@@ -528,7 +528,7 @@
         <form
             method="post"
             id="carForm"
-            action="/cars/add"
+            action="/car/add"
         >
 
             <label>
@@ -647,7 +647,7 @@
 
             <input
                 type="file"
-                name="backup_file"
+                name="cars_backup_file"
                 accept=".db,.json,application/octet-stream,application/json"
                 required
             >
@@ -815,7 +815,7 @@ function openCarAdd() {
     if (!modal) return;
 
     form.action =
-        "/cars/add";
+        "/car/add";
 
     title.textContent =
         "＋ Új kocsi hozzáadása";
@@ -887,7 +887,7 @@ function openCarEdit(
     if (!modal) return;
 
     form.action =
-        "/cars/" +
+        "/car/" +
         id +
         "/edit";
 
