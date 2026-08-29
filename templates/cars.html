@@ -93,11 +93,17 @@
 
         <nav>
 
-            <a href="/">
+            <a
+                class=""
+                href="/"
+            >
                 ☷ Névsor
             </a>
 
-            <a href="/penalty-log">
+            <a
+                class=""
+                href="/penalty-log"
+            >
                 ⚠ Hibapont napló
             </a>
 
@@ -108,13 +114,12 @@
                 🚗 Kocsi lista
             </a>
 
-            {% if logged_in %}
-
-            <a href="/">
-                ◉ Discord kapcsolatok
+            <a
+                class=""
+                href="/tutorial"
+            >
+                🔧 Szerelési Tutorial
             </a>
-
-            {% endif %}
 
         </nav>
 
@@ -385,6 +390,7 @@
                             <tr>
                                 <th>Típus</th>
                                 <th>Kategória</th>
+                                <th>Ár</th>
 
                                 {% if logged_in %}
                                 <th>Műveletek</th>
@@ -416,6 +422,10 @@
                                         Limitált / Egyedi
                                     {% endif %}
 
+                                </td>
+
+                                <td class="car-price">
+                                    {{ "{:,.0f}".format(car["price"]).replace(",", " ") }} $
                                 </td>
 
                                 {% if logged_in %}
@@ -468,7 +478,7 @@
                             <tr>
 
                                 <td
-                                    colspan="{% if logged_in %}3{% else %}2{% endif %}"
+                                    colspan="{% if logged_in %}4{% else %}3{% endif %}"
                                     class="empty"
                                 >
                                     Még nincs felvitt kocsi.
@@ -563,6 +573,21 @@
                 </option>
 
             </select>
+
+
+            <label>
+                Ár
+            </label>
+
+            <input
+                type="number"
+                name="price"
+                id="carPrice"
+                min="0"
+                step="1"
+                placeholder="Pl. 25000000"
+                required
+            >
 
 
             <div
@@ -787,7 +812,10 @@ function openCarAdd() {
             "carCategory"
         );
 
-    const price = null;
+    const price =
+        document.getElementById(
+            "carPrice"
+        );
 
     if (!modal) return;
 
@@ -803,7 +831,8 @@ function openCarAdd() {
     category.value =
         "kozep";
 
-    // Az ár mező megszűnt, nem kell megadni.
+    price.value =
+        "";
 
     updateCarCategoryInfo();
 
@@ -817,7 +846,8 @@ function openCarAdd() {
 function openCarEdit(
     id,
     carType,
-    category
+    category,
+    price
 ) {
 
     if (!loggedIn) {
@@ -854,6 +884,11 @@ function openCarEdit(
             "carCategory"
         );
 
+    const priceInput =
+        document.getElementById(
+            "carPrice"
+        );
+
     if (!modal) return;
 
     form.action =
@@ -870,7 +905,8 @@ function openCarEdit(
     categoryInput.value =
         category || "kozep";
 
-    // Az ár mező megszűnt, nem kell megadni.
+    priceInput.value =
+        price || 0;
 
     updateCarCategoryInfo();
 
