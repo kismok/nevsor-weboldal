@@ -17,6 +17,33 @@
         href="{{ url_for('static', filename='style.css') }}"
     >
 
+<style>
+        .payment-summary-main {
+            display: flex !important;
+            align-items: center !important;
+            gap: 14px !important;
+            flex: 1 !important;
+            min-width: 0;
+        }
+
+        .payment-arrow {
+            margin-left: auto;
+            flex: 0 0 auto;
+            font-size: 18px;
+            line-height: 1;
+            transition: transform .2s ease;
+        }
+
+        .payment-details[open] .payment-arrow {
+            transform: rotate(180deg);
+        }
+
+        .payment-summary::after {
+            display: none !important;
+            content: none !important;
+        }
+</style>
+
 </head>
 
 
@@ -330,7 +357,7 @@
                     "
                 >
 
-                    <summary class="payment-summary">
+                    <summary class="payment-summary" style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
 
                         <div class="payment-summary-main">
 
@@ -342,6 +369,8 @@
                                 {{ unpaid.count }}
                                 <small>fő</small>
                             </span>
+
+                            <span class="payment-arrow" aria-hidden="true">▼</span>
 
                         </div>
 
@@ -382,7 +411,7 @@
                     "
                 >
 
-                    <summary class="payment-summary">
+                    <summary class="payment-summary" style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
 
                         <div class="payment-summary-main">
 
@@ -394,6 +423,8 @@
                                 {{ paid.count }}
                                 <small>fő</small>
                             </span>
+
+                            <span class="payment-arrow" aria-hidden="true">▼</span>
 
                         </div>
 
@@ -434,7 +465,7 @@
                     "
                 >
 
-                    <summary class="payment-summary">
+                    <summary class="payment-summary" style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
 
                         <div class="payment-summary-main">
 
@@ -446,6 +477,8 @@
                                 {{ exempt.count }}
                                 <small>fő</small>
                             </span>
+
+                            <span class="payment-arrow" aria-hidden="true">▼</span>
 
                         </div>
 
