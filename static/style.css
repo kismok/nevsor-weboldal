@@ -1471,3 +1471,110 @@ input[type="checkbox"] {
     }
 
 }
+
+/* =====================================================
+   FEJLÉC / FELSŐ SÁV - PRO GEAR GARAGE TÉMA
+===================================================== */
+
+header {
+    background: #000000 !important;
+
+    border-bottom: 1px solid rgba(0, 191, 255, 0.28) !important;
+
+    box-shadow:
+        0 2px 18px rgba(0, 140, 255, 0.08);
+}
+
+
+.hamb {
+    color: #00bfff !important;
+
+    text-shadow:
+        0 0 5px #00bfff,
+        0 0 10px #00bfff,
+        0 0 18px rgba(0, 140, 255, 0.8);
+}
+
+
+/* Keresőmező */
+
+.search input {
+    background: #090909 !important;
+
+    color: #00bfff !important;
+
+    border: 1px solid rgba(0, 191, 255, 0.30) !important;
+
+    box-shadow:
+        inset 0 0 8px rgba(0, 100, 255, 0.06);
+
+    caret-color: #00bfff;
+}
+
+
+.search input::placeholder {
+    color: rgba(0, 191, 255, 0.58) !important;
+}
+
+
+.search input:focus {
+    background: #050505 !important;
+
+    color: #00bfff !important;
+
+    border-color: #00bfff !important;
+
+    box-shadow:
+        0 0 0 2px rgba(0, 191, 255, 0.12),
+        0 0 12px rgba(0, 160, 255, 0.22);
+}
+
+
+/* Bejelentkezett felhasználó */
+
+.logged-user {
+    color: #00bfff !important;
+
+    text-shadow:
+        0 0 5px #00bfff,
+        0 0 10px rgba(0, 191, 255, 0.75);
+}
+
+
+/* Kijelentkezés gomb */
+
+.auth-buttons .secondary {
+    background: #090909 !important;
+
+    color: #00bfff !important;
+
+    border: 1px solid rgba(0, 191, 255, 0.28) !important;
+
+    box-shadow:
+        0 0 8px rgba(0, 140, 255, 0.08);
+}
+
+
+.auth-buttons .secondary:hover {
+    background: rgba(0, 191, 255, 0.10) !important;
+
+    color: #39d4ff !important;
+
+    border-color: #00bfff !important;
+
+    box-shadow:
+        0 0 10px rgba(0, 191, 255, 0.25);
+}
+
+
+/* A fejléc jobb oldali része ne kapjon fehér hátteret */
+
+header .auth-buttons {
+    background: transparent !important;
+}
+
+
+header .logged-user,
+header .auth-buttons .secondary {
+    white-space: nowrap;
+}
