@@ -322,242 +322,156 @@
 
                 {% if unpaid.count > 0 %}
 
-                <div
-                    class="card"
+                <details
+                    class="card payment-details"
                     style="
                         border:2px solid rgba(255,70,70,.55);
                         background:rgba(255,50,50,.08);
                     "
                 >
 
-                    <div
-                        style="
-                            padding:24px;
-                        "
-                    >
+                    <summary class="payment-summary">
 
-                        <div
-                            style="
-                                font-size:14px;
-                                font-weight:800;
-                                letter-spacing:1px;
-                                text-transform:uppercase;
-                                color:#ff7070;
-                                margin-bottom:8px;
-                            "
-                        >
-                            ⚠️ NEM FIZETETT TAGOK
-                        </div>
+                        <div class="payment-summary-main">
 
-                        <div
-                            style="
-                                font-size:46px;
-                                font-weight:900;
-                                line-height:1;
-                                margin-bottom:14px;
-                            "
-                        >
-                            {{ unpaid.count }}
-                            <span
-                                style="
-                                    font-size:18px;
-                                    font-weight:700;
-                                "
-                            >
-                                fő
-                            </span>
-                        </div>
-
-                        <div
-                            style="
-                                display:flex;
-                                flex-wrap:wrap;
-                                gap:8px;
-                            "
-                        >
-
-                            {% for name in unpaid.names %}
-
-                            <span
-                                style="
-                                    padding:7px 11px;
-                                    border-radius:999px;
-                                    background:rgba(255,70,70,.14);
-                                    border:1px solid rgba(255,70,70,.28);
-                                    font-weight:700;
-                                "
-                            >
-                                {{ name }}
+                            <span class="payment-summary-title">
+                                ⚠️ NEM FIZETETT TAGOK
                             </span>
 
-                            {% endfor %}
+                            <span class="payment-summary-count">
+                                {{ unpaid.count }}
+                                <small>fő</small>
+                            </span>
 
                         </div>
+
+                    </summary>
+
+                    <div class="payment-details-body">
+
+                        {% for name in unpaid.names %}
+
+                        <span
+                            style="
+                                padding:7px 11px;
+                                border-radius:999px;
+                                background:rgba(255,70,70,.14);
+                                border:1px solid rgba(255,70,70,.28);
+                                font-weight:700;
+                            "
+                        >
+                            {{ name }}
+                        </span>
+
+                        {% endfor %}
 
                     </div>
 
-                </div>
+                </details>
 
                 {% endif %}
 
 
                 {% if paid.count > 0 %}
 
-                <div
-                    class="card"
+                <details
+                    class="card payment-details"
                     style="
                         border:2px solid rgba(70,220,120,.55);
                         background:rgba(70,220,120,.08);
                     "
                 >
 
-                    <div
-                        style="
-                            padding:24px;
-                        "
-                    >
+                    <summary class="payment-summary">
 
-                        <div
-                            style="
-                                font-size:14px;
-                                font-weight:800;
-                                letter-spacing:1px;
-                                text-transform:uppercase;
-                                color:#5ee58a;
-                                margin-bottom:8px;
-                            "
-                        >
-                            🟢 FIZETETT TAGOK
-                        </div>
+                        <div class="payment-summary-main">
 
-                        <div
-                            style="
-                                font-size:46px;
-                                font-weight:900;
-                                line-height:1;
-                                margin-bottom:14px;
-                            "
-                        >
-                            {{ paid.count }}
-                            <span
-                                style="
-                                    font-size:18px;
-                                    font-weight:700;
-                                "
-                            >
-                                fő
-                            </span>
-                        </div>
-
-                        <div
-                            style="
-                                display:flex;
-                                flex-wrap:wrap;
-                                gap:8px;
-                            "
-                        >
-
-                            {% for name in paid.names %}
-
-                            <span
-                                style="
-                                    padding:7px 11px;
-                                    border-radius:999px;
-                                    background:rgba(70,220,120,.14);
-                                    border:1px solid rgba(70,220,120,.28);
-                                    font-weight:700;
-                                "
-                            >
-                                {{ name }}
+                            <span class="payment-summary-title">
+                                🟢 FIZETETT TAGOK
                             </span>
 
-                            {% endfor %}
+                            <span class="payment-summary-count">
+                                {{ paid.count }}
+                                <small>fő</small>
+                            </span>
 
                         </div>
+
+                    </summary>
+
+                    <div class="payment-details-body">
+
+                        {% for name in paid.names %}
+
+                        <span
+                            style="
+                                padding:7px 11px;
+                                border-radius:999px;
+                                background:rgba(70,220,120,.14);
+                                border:1px solid rgba(70,220,120,.28);
+                                font-weight:700;
+                            "
+                        >
+                            {{ name }}
+                        </span>
+
+                        {% endfor %}
 
                     </div>
 
-                </div>
+                </details>
 
                 {% endif %}
 
 
                 {% if exempt.count > 0 %}
 
-                <div
-                    class="card"
+                <details
+                    class="card payment-details"
                     style="
                         border:2px solid rgba(255,205,70,.55);
                         background:rgba(255,205,70,.08);
                     "
                 >
 
-                    <div
-                        style="
-                            padding:24px;
-                        "
-                    >
+                    <summary class="payment-summary">
 
-                        <div
-                            style="
-                                font-size:14px;
-                                font-weight:800;
-                                letter-spacing:1px;
-                                text-transform:uppercase;
-                                margin-bottom:8px;
-                            "
-                        >
-                            🟡 MENTESSÉGBEN
-                        </div>
+                        <div class="payment-summary-main">
 
-                        <div
-                            style="
-                                font-size:46px;
-                                font-weight:900;
-                                line-height:1;
-                                margin-bottom:14px;
-                            "
-                        >
-                            {{ exempt.count }}
-                            <span
-                                style="
-                                    font-size:18px;
-                                    font-weight:700;
-                                "
-                            >
-                                fő
-                            </span>
-                        </div>
-
-                        <div
-                            style="
-                                display:flex;
-                                flex-wrap:wrap;
-                                gap:8px;
-                            "
-                        >
-
-                            {% for name in exempt.names %}
-
-                            <span
-                                style="
-                                    padding:7px 11px;
-                                    border-radius:999px;
-                                    background:rgba(255,205,70,.14);
-                                    border:1px solid rgba(255,205,70,.28);
-                                    font-weight:700;
-                                "
-                            >
-                                {{ name }}
+                            <span class="payment-summary-title">
+                                🟡 MENTESSÉGBEN
                             </span>
 
-                            {% endfor %}
+                            <span class="payment-summary-count">
+                                {{ exempt.count }}
+                                <small>fő</small>
+                            </span>
 
                         </div>
+
+                    </summary>
+
+                    <div class="payment-details-body">
+
+                        {% for name in exempt.names %}
+
+                        <span
+                            style="
+                                padding:7px 11px;
+                                border-radius:999px;
+                                background:rgba(255,205,70,.14);
+                                border:1px solid rgba(255,205,70,.28);
+                                font-weight:700;
+                            "
+                        >
+                            {{ name }}
+                        </span>
+
+                        {% endfor %}
 
                     </div>
 
-                </div>
+                </details>
 
                 {% endif %}
 
