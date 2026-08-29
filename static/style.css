@@ -69,7 +69,7 @@ select {
     width: 250px;
     min-height: 100vh;
 
-    background: var(--sidebar);
+    background: #000000 !important;
     color: white;
 
     padding: 26px 14px;
@@ -78,6 +78,11 @@ select {
     flex-direction: column;
 
     flex-shrink: 0;
+
+    border-right: 1px solid rgba(0, 170, 255, 0.22);
+
+    box-shadow:
+        4px 0 22px rgba(0, 80, 255, 0.08);
 }
 
 
@@ -86,53 +91,89 @@ select {
     margin-bottom: 42px;
 
     font-size: 20px;
-    font-weight: 800;
+    font-weight: 900;
 
-    letter-spacing: 0.5px;
+    letter-spacing: 0.7px;
 
     display: flex;
     align-items: center;
     gap: 10px;
+
+    color: #00bfff !important;
+
+    text-shadow:
+        0 0 5px #00bfff,
+        0 0 10px #00bfff,
+        0 0 18px #008cff,
+        0 0 30px rgba(0, 140, 255, 0.75);
 }
 
 
 .brand span {
-    color: #ffffff;
+    color: #00bfff !important;
 }
 
 
 .sidebar nav {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 9px;
 }
 
 
 .sidebar nav a {
-    color: #9ca3af;
+    color: #ff1f1f !important;
+
+    background: transparent;
 
     text-decoration: none;
 
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700;
 
-    padding: 13px 15px;
+    padding: 14px 15px;
 
     border-radius: 9px;
 
-    transition: 0.2s;
+    transition: 0.2s ease;
+
+    text-shadow:
+        0 0 4px rgba(255, 0, 0, 0.85),
+        0 0 9px rgba(255, 0, 0, 0.55);
 }
 
 
 .sidebar nav a:hover {
-    background: var(--sidebar-hover);
-    color: white;
+    background: rgba(255, 0, 0, 0.10);
+
+    color: #ff4d4d !important;
+
+    text-shadow:
+        0 0 5px #ff0000,
+        0 0 10px #ff0000,
+        0 0 18px #ff0000,
+        0 0 28px rgba(255, 0, 0, 0.85);
+
+    box-shadow:
+        inset 3px 0 0 #ff1111,
+        0 0 12px rgba(255, 0, 0, 0.25);
 }
 
 
 .sidebar nav a.active {
-    background: #1e3a5f;
-    color: #ffffff;
+    background: rgba(255, 0, 0, 0.14) !important;
+
+    color: #ff3333 !important;
+
+    text-shadow:
+        0 0 5px #ff0000,
+        0 0 11px #ff0000,
+        0 0 20px #ff0000,
+        0 0 32px rgba(255, 0, 0, 0.9);
+
+    box-shadow:
+        inset 4px 0 0 #ff1111,
+        0 0 15px rgba(255, 0, 0, 0.30);
 }
 
 
