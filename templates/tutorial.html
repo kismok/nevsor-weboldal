@@ -1,350 +1,78 @@
-<!doctype html>
-<html lang="hu">
-
-<head>
-
-    <meta charset="utf-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1"
-    >
-
-    <title>Szerelési Tutorial - Pro Gear Garage</title>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
-    >
+még mindig lehet nagyobb a távoldság van hogy ösze vannak csuszva,
+Beillesztve text(20260829-144406).txt-be
+Fájl
+ ez is fekte alapon legyen, és olyan kékkel mint a pro gear garage
+ha rá kattintok a hiba naplóra ne tünjön el a többi hanem látszodjanak azok is 
+szerelési tutorial, és kocsi listánál felül ahol irja legyen az is olyan kék mint amivel a keresőbe irja 
 
-    <style>
+Na, így már a Kocsi lista és a Szerelési Tutorial is ugyanazt a neon kéket kapja, mint a keresőmezőben lévő szöveg.
 
-        .tutorial-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-
-        .tutorial-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .tutorial-content {
-            min-height: 260px;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
+A bal oldali menüben ez a két menüpont kék lesz, a Névsor és Hibapont napló továbbra is tűzpiros marad. A Kocsi lista/Tutorial felső címfelirata is neon kék lesz.
 
-        .tutorial-placeholder {
-            padding: 28px;
-            text-align: center;
-        }
-
-        .tutorial-editor textarea {
-            width: 100%;
-            min-height: 480px;
-            resize: vertical;
-            box-sizing: border-box;
-            padding: 16px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.12);
-            background: rgba(0,0,0,.16);
-            color: inherit;
-            font: inherit;
-            line-height: 1.6;
-        }
-
-        .tutorial-editor input {
-            width: 100%;
-            box-sizing: border-box;
-            margin-bottom: 14px;
-        }
+Frissített teljes style.css
 
-    </style>
+Teljes nyers kódsor TXT 
 
-</head>
+style_pro_gear_garage_cars_tutorial_kek.css
+Kód
+style_pro_gear_garage_cars_tutorial_kek_kodsor.txt
+Dokumentum
+ha rá nyomok a hiba naplóra ne legyen fölötte az
 
-<body>
+Igen, látom mi volt a gond. A PRO GEAR GARAGE a bal oldali fejléc/brand legyen, ne külön menüpont a Névsor helyén.
 
-<div class="app">
+Így a Hibapont napló oldalon is:
 
-    <!-- =====================================================
-         BAL OLDALI MENÜ
-    ====================================================== -->
+▣ PRO GEAR GARAGE
 
-    <aside class="sidebar">
+☷ Névsor
+⚠ Hibapont napló   ← aktív
+🚗 Kocsi lista
+🔧 Szerelési Tutorial
 
-        <div class="brand">
-            ▣ <span>PRO GEAR GARAGE</span>
-        </div>
+Tehát nem lesz fölötte külön „Pro Gear Garage” menüpont.
 
-        <nav>
+Javított teljes penalty_log.html
 
-            <a href="/">
-                ☷ Névsor
-            </a>
+Nyers kódsor TXT 
 
-            <a href="/penalty-log">
-                ⚠ Hibapont napló
-            </a>
+penalty-log_menu_javitva.html
+HTML
+penalty-log_menu_javitva_kodsor.txt
+Dokumentum
+most ha rá nyomok a tutorial-ra vagy kocsi listára akkor eltünik a másik illetve rakd visza  azt a piros szint amivel a többi van
 
-            <a href="/cars">
-                🚗 Kocsi lista
-            </a>
+Megvan. Most mindkét oldalon ugyanaz a teljes bal oldali menü látszik, tehát egyik oldalról sem tűnik el a másik menüpont.
 
-            <a
-                class="active"
-                href="/tutorial"
-            >
-                🔧 Szerelési Tutorial
-            </a>
+▣ PRO GEAR GARAGE
 
-        </nav>
+☷ Névsor
+⚠ Hibapont napló
+🚗 Kocsi lista
+🔧 Szerelési Tutorial
 
-    </aside>
+És visszaraktam, hogy a menüpontok tűzpirosak legyenek. Csak az éppen megnyitott menüpont kap erősebb piros kiemelést.
 
+Kocsi lista
 
-    <!-- =====================================================
-         FŐ TARTALOM
-    ====================================================== -->
+Teljes javított cars.html
 
-    <main>
+Kocsilista nyers kódsor
 
-        <header>
+Szerelési Tutorial
 
-            <div class="hamb">
-                ☰
-            </div>
+Teljes javított tutorial.html
 
-            <div
-                style="
-                    flex:1;
-                    padding-left:12px;
-                    font-weight:700;
-                "
-            >
-                🔧 Szerelési Tutorial
-            </div>
+Tutorial nyers kódsor
 
-            <div class="auth-buttons">
+A PRO GEAR GARAGE felirat marad neon kék, a menüpontok pedig pirosak. 
 
-                {% if logged_in %}
-
-                <span class="logged-user">
-                    🔓 Szerkesztő mód
-                </span>
-
-                <a
-                    href="/logout"
-                    class="secondary"
-                >
-                    Kijelentkezés
-                </a>
-
-                {% else %}
-
-                <a
-                    href="/login"
-                    class="secondary"
-                >
-                    🔒 Bejelentkezés
-                </a>
-
-                {% endif %}
-
-            </div>
-
-        </header>
-
-
-        <section class="content">
-
-            <div class="tutorial-header">
-
-                <div>
-
-                    <h1>
-                        🔧 SZERELÉSI TUTORIAL
-                    </h1>
-
-                    <p>
-                        Szerelési útmutató és fontos műhelyinformációk.
-                    </p>
-
-                </div>
-
-
-                {% if logged_in %}
-
-                <div class="tutorial-actions">
-
-                    <button
-                        class="primary"
-                        type="button"
-                        onclick="toggleTutorialEditor()"
-                    >
-                        ✎ Szerkesztés
-                    </button>
-
-                </div>
-
-                {% endif %}
-
-            </div>
-
-
-            <!-- =====================================================
-                 MEGJELENÍTÉS
-            ====================================================== -->
-
-            <div
-                class="card"
-                id="tutorialView"
-            >
-
-                <div
-                    style="
-                        padding: 26px;
-                    "
-                >
-
-                    <h2>
-                        {{ tutorial_title or "Szerelési Tutorial" }}
-                    </h2>
-
-                    {% if tutorial_content %}
-
-                    <div class="tutorial-content">
-                        {{ tutorial_content }}
-                    </div>
-
-                    {% else %}
-
-                    <div class="tutorial-placeholder muted">
-
-                        Még nincs hozzáadva tutorial.
-
-                        {% if logged_in %}
-                        Kattints a „Szerkesztés” gombra az első útmutató létrehozásához.
-                        {% else %}
-                        A tutorial megtekinthető, a szerkesztéshez be kell jelentkezni.
-                        {% endif %}
-
-                    </div>
-
-                    {% endif %}
-
-                </div>
-
-            </div>
-
-
-            {% if logged_in %}
-
-            <!-- =====================================================
-                 SZERKESZTŐ
-            ====================================================== -->
-
-            <div
-                class="card tutorial-editor"
-                id="tutorialEditor"
-                style="display:none;"
-            >
-
-                <div style="padding:26px;">
-
-                    <h2>
-                        ✎ Szerelési Tutorial szerkesztése
-                    </h2>
-
-                    <form
-                        method="post"
-                        action="/tutorial/save"
-                    >
-
-                        <label>
-                            Cím
-                        </label>
-
-                        <input
-                            type="text"
-                            name="title"
-                            value="{{ tutorial_title or 'Szerelési Tutorial' }}"
-                            required
-                        >
-
-                        <label>
-                            Tartalom
-                        </label>
-
-                        <textarea
-                            name="content"
-                            placeholder="Ide írd a szerelési tutorial teljes szövegét..."
-                        >{{ tutorial_content or "" }}</textarea>
-
-                        <button
-                            class="primary full"
-                            type="submit"
-                        >
-                            💾 Tutorial mentése
-                        </button>
-
-                    </form>
-
-                </div>
-
-            </div>
-
-            {% endif %}
-
-        </section>
-
-    </main>
-
-</div>
-
-
-<script>
-
-function toggleTutorialEditor() {
-
-    const editor =
-        document.getElementById("tutorialEditor");
-
-    const view =
-        document.getElementById("tutorialView");
-
-    if (!editor) {
-        return;
-    }
-
-    if (editor.style.display === "none" || !editor.style.display) {
-
-        editor.style.display = "block";
-
-        if (view) {
-            view.style.display = "none";
-        }
-
-    } else {
-
-        editor.style.display = "none";
-
-        if (view) {
-            view.style.display = "block";
-        }
-
-    }
-
-}
-
-</script>
-
-</body>
-</html>
+cars_menu_teljes_javitva_piros.html
+HTML
+cars_menu_teljes_javitva_piros_kodsor.txt
+Dokumentum
+tutorial_menu_teljes_javitva_piros.html
+HTML
+tutorial_menu_teljes_javitva_piros_kodsor.txt
+Dokumentum
+Kevesebb mutatása
