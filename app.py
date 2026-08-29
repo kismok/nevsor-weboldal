@@ -281,7 +281,6 @@ def init_db():
         discord_username TEXT,
         payment_status INTEGER NOT NULL DEFAULT 0,
         payment_date TEXT,
-        payment_exempt INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
     );
 
@@ -321,6 +320,14 @@ def init_db():
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS tutorial (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        title TEXT NOT NULL,
+        content TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
     """)
 
     columns = conn.execute(
@@ -346,27 +353,6 @@ def init_db():
             ALTER TABLE members
             ADD COLUMN payment_date TEXT
         """)
-
-    if "payment_exempt" not in column_names:
-
-        conn.execute("""
-            ALTER TABLE members
-            ADD COLUMN payment_exempt
-            INTEGER NOT NULL DEFAULT 0
-        """)
-
-    # Aki egyszer mentességet kapott, maradjon mentességben minden hónapban,
-    # amíg az admin külön át nem állítja fizetett vagy nem fizetett státuszra.
-    conn.execute("""
-        UPDATE members
-        SET payment_exempt = 1
-        WHERE EXISTS (
-            SELECT 1
-            FROM payments
-            WHERE payments.member_id = members.id
-              AND payments.payment_status = 2
-        )
-    """)
 
     old_members = conn.execute("""
         SELECT
@@ -1296,6 +1282,122 @@ def restore_cars_backup():
 
 
 # =========================================================
+# SZERELÉSI TUTORIAL
+# =========================================================
+
+@app.route(
+    "/tutorial"
+)
+def tutorial():
+
+    row = db().execute("""
+        SELECT
+            title,
+            content
+        FROM tutorial
+        WHERE id = 1
+    """).fetchone()
+
+    tutorial_title = (
+        row["title"]
+        if row
+        else "Szerelési Tutorial"
+    )
+
+    tutorial_content = (
+        row["content"]
+        if row
+        else ""
+    )
+
+    return render_template(
+        "tutorial.html",
+        tutorial_title=tutorial_title,
+        tutorial_content=tutorial_content,
+        logged_in=is_logged_in()
+    )
+
+
+@app.route(
+    "/tutorial/save",
+    methods=["POST"]
+)
+def save_tutorial():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    title = request.form.get(
+        "title",
+        "Szerelési Tutorial"
+    ).strip()
+
+    content = request.form.get(
+        "content",
+        ""
+    )
+
+    if not title:
+
+        title = "Szerelési Tutorial"
+
+    now = datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+    conn = db()
+
+    existing = conn.execute("""
+        SELECT id
+        FROM tutorial
+        WHERE id = 1
+    """).fetchone()
+
+    if existing:
+
+        conn.execute("""
+            UPDATE tutorial
+            SET
+                title = ?,
+                content = ?,
+                updated_at = ?
+            WHERE id = 1
+        """, (
+            title,
+            content,
+            now
+        ))
+
+    else:
+
+        conn.execute("""
+            INSERT INTO tutorial
+            (
+                id,
+                title,
+                content,
+                created_at,
+                updated_at
+            )
+            VALUES (1, ?, ?, ?, ?)
+        """, (
+            title,
+            content,
+            now,
+            now
+        ))
+
+    conn.commit()
+
+    return redirect(
+        url_for("tutorial")
+    )
+
+
+# =========================================================
 # KIJELENTKEZÉS
 # =========================================================
 
@@ -1337,10 +1439,7 @@ def index():
 
             COALESCE(
                 pmt.payment_status,
-                CASE
-                    WHEN m.payment_exempt = 1 THEN 2
-                    ELSE 0
-                END
+                0
             ) AS payment_status,
 
             pmt.payment_date,
@@ -1392,7 +1491,6 @@ def index():
             m.discord_user_id,
             m.discord_username,
             m.created_at,
-            m.payment_exempt,
             pmt.payment_status,
             pmt.payment_date
 
@@ -1522,15 +1620,13 @@ def add_member():
             (
                 name,
                 character_id,
-                payment_exempt,
                 created_at
             )
 
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?)
         """, (
             name,
             character_id,
-            1 if status == 2 else 0,
             now
         ))
 
@@ -1673,14 +1769,12 @@ def edit_member(member_id):
 
             SET
                 name = ?,
-                character_id = ?,
-                payment_exempt = ?
+                character_id = ?
 
             WHERE id = ?
         """, (
             name,
             character_id,
-            1 if status == 2 else 0,
             member_id
         ))
 
@@ -1852,10 +1946,7 @@ def member_detail(member_id):
 
             COALESCE(
                 pmt.payment_status,
-                CASE
-                    WHEN m.payment_exempt = 1 THEN 2
-                    ELSE 0
-                END
+                0
             ) AS payment_status,
 
             pmt.payment_date,
@@ -1885,7 +1976,6 @@ def member_detail(member_id):
             m.character_id,
             m.discord_user_id,
             m.discord_username,
-            m.payment_exempt,
             pmt.payment_status,
             pmt.payment_date
     """, (
@@ -2436,7 +2526,6 @@ def export_database():
                 character_id,
                 discord_user_id,
                 discord_username,
-                payment_exempt,
                 created_at
 
             FROM members
@@ -2501,7 +2590,6 @@ def export_database():
         "Karakter ID",
         "Discord felhasználó ID",
         "Discord név",
-        "Mentesség minden hónapra",
         "Létrehozva"
     ])
 
@@ -2513,7 +2601,6 @@ def export_database():
             member["character_id"],
             member["discord_user_id"],
             member["discord_username"],
-            "Igen" if member["payment_exempt"] else "Nem",
             member["created_at"]
         ])
 
