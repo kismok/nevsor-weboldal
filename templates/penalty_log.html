@@ -2,7 +2,6 @@
 <html lang="hu">
 
 <head>
-
     <meta charset="utf-8">
 
     <meta
@@ -16,7 +15,6 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='style.css') }}"
     >
-
 </head>
 
 
@@ -32,14 +30,23 @@
     <aside class="sidebar">
 
         <div class="brand">
-            ▣ <span>NÉVSOR</span>
+            ▣ <span>PRO GEAR GARAGE</span>
         </div>
 
 
         <nav>
 
-            <a href="/">
+            <a
+                href="/?month={{ selected_month }}"
+            >
                 ☷ Névsor
+            </a>
+
+
+            <a
+                href="/?month={{ selected_month }}"
+            >
+                ☷ Pro Gear Garage
             </a>
 
 
@@ -49,6 +56,29 @@
             >
                 ⚠ Hibapont napló
             </a>
+
+
+            <a
+                href="/cars"
+            >
+                🚗 Kocsi lista
+            </a>
+
+
+            <a
+                href="/tutorial"
+            >
+                🔧 Szerelési Tutorial
+            </a>
+
+
+            {% if logged_in %}
+
+            <a href="/?month={{ selected_month }}#discord">
+                ◉ Discord kapcsolatok
+            </a>
+
+            {% endif %}
 
         </nav>
 
@@ -76,10 +106,17 @@
             >
 
                 <input
+                    type="hidden"
+                    name="month"
+                    value="{{ selected_month }}"
+                >
+
+
+                <input
                     type="text"
                     name="q"
-                    value="{{ q }}"
-                    placeholder="Keresés név, ID vagy indoklás alapján..."
+                    value="{{ q|default('') }}"
+                    placeholder="Keresés név, karakter ID vagy indoklás alapján..."
                 >
 
             </form>
@@ -122,7 +159,7 @@
 
 
             <!-- =====================================================
-                 FEJLÉC
+                 OLDAL FEJLÉC
             ====================================================== -->
 
             <div class="title-row">
@@ -134,7 +171,7 @@
                     </h1>
 
                     <p>
-                        Az összes kiosztott hibapont időrendi sorrendben
+                        Az összes kiosztott hibapont és azok részletei
                     </p>
 
                 </div>
@@ -143,10 +180,10 @@
                 <div class="title-buttons">
 
                     <a
-                        href="/"
                         class="secondary"
+                        href="/?month={{ selected_month }}"
                     >
-                        ← Vissza a Névsorhoz
+                        ← Vissza a névsorhoz
                     </a>
 
                 </div>
@@ -156,7 +193,56 @@
 
 
             <!-- =====================================================
-                 TÁBLÁZAT
+                 HÓNAP VÁLTÓ
+            ====================================================== -->
+
+            <div class="month-selector">
+
+                <button
+                    class="icon"
+                    type="button"
+                    onclick="changeMonth(-1)"
+                    title="Előző hónap"
+                >
+                    ←
+                </button>
+
+
+                <div class="selected-month">
+
+                    <span>📅</span>
+
+                    <b>
+                        {{ selected_month_display }}
+                    </b>
+
+                </div>
+
+
+                <button
+                    class="icon"
+                    type="button"
+                    onclick="changeMonth(1)"
+                    title="Következő hónap"
+                >
+                    →
+                </button>
+
+
+                <button
+                    class="secondary"
+                    type="button"
+                    onclick="goCurrentMonth()"
+                >
+                    Mai hónap
+                </button>
+
+            </div>
+
+
+
+            <!-- =====================================================
+                 HIBAPONT TÁBLÁZAT
             ====================================================== -->
 
             <div class="card">
@@ -170,11 +256,17 @@
                             <tr>
 
                                 <th>#</th>
-                                <th>Dátum</th>
                                 <th>Név</th>
                                 <th>Karakter ID</th>
                                 <th>Hibapont</th>
                                 <th>Indoklás</th>
+                                <th>Dátum</th>
+
+                                {% if logged_in %}
+
+                                <th>Műveletek</th>
+
+                                {% endif %}
 
                             </tr>
 
@@ -188,52 +280,80 @@
                             <tr>
 
                                 <td class="row-number">
-
                                     {{ loop.index }}
-
                                 </td>
 
 
                                 <td>
+                                    <b>
+                                        {{ p.member_name }}
+                                    </b>
+                                </td>
+
+
+                                <td>
+                                    {{ p.character_id }}
+                                </td>
+
+
+                                <td class="points">
+                                    +{{ p.points }}
+                                </td>
+
+
+                                <td>
+                                    {{ p.reason }}
+                                </td>
+
+
+                                <td class="muted">
 
                                     {{
-                                        p.created_at
+                                        (p.created_at|string)
                                         .replace("T", " ")
                                     }}
 
                                 </td>
 
 
-                                <td>
-
-                                    <b>
-                                        {{ p.name }}
-                                    </b>
-
-                                </td>
-
+                                {% if logged_in %}
 
                                 <td>
 
-                                    {{ p.character_id }}
+                                    <form
+                                        class="inline"
+                                        method="post"
+                                        action="/penalty/{{ p.id }}/delete"
+                                        onsubmit="return confirm('Biztosan törlöd ezt a hibapontot?')"
+                                    >
+
+                                        <input
+                                            type="hidden"
+                                            name="month"
+                                            value="{{ selected_month }}"
+                                        >
+
+
+                                        <input
+                                            type="hidden"
+                                            name="redirect"
+                                            value="penalty-log"
+                                        >
+
+
+                                        <button
+                                            class="icon delete"
+                                            type="submit"
+                                            title="Hibapont törlése"
+                                        >
+                                            🗑
+                                        </button>
+
+                                    </form>
 
                                 </td>
 
-
-                                <td
-                                    class="points"
-                                >
-
-                                    +{{ p.points }}
-
-                                </td>
-
-
-                                <td>
-
-                                    {{ p.reason }}
-
-                                </td>
+                                {% endif %}
 
                             </tr>
 
@@ -243,12 +363,10 @@
                             <tr>
 
                                 <td
-                                    colspan="6"
+                                    colspan="{% if logged_in %}7{% else %}6{% endif %}"
                                     class="empty"
                                 >
-
-                                    Még nincs rögzített hibapont.
-
+                                    🎉 Ebben a hónapban nincs rögzített hibapont.
                                 </td>
 
                             </tr>
@@ -268,8 +386,111 @@
 
     </main>
 
-
 </div>
+
+
+
+<script>
+
+
+const selectedMonth =
+    "{{ selected_month }}";
+
+
+
+function changeMonth(offset) {
+
+    const parts =
+        selectedMonth.split("-");
+
+
+    let year =
+        Number(parts[0]);
+
+
+    let month =
+        Number(parts[1]);
+
+
+    month += offset;
+
+
+    if (month < 1) {
+
+        month = 12;
+        year--;
+
+    }
+
+
+    if (month > 12) {
+
+        month = 1;
+        year++;
+
+    }
+
+
+    const newMonth =
+        year +
+        "-" +
+        String(month).padStart(2, "0");
+
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    params.set(
+        "month",
+        newMonth
+    );
+
+
+    window.location.href =
+        "/penalty-log?" +
+        params.toString();
+
+}
+
+
+
+function goCurrentMonth() {
+
+    const now =
+        new Date();
+
+
+    const currentMonth =
+        now.getFullYear() +
+        "-" +
+        String(
+            now.getMonth() + 1
+        ).padStart(2, "0");
+
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    params.set(
+        "month",
+        currentMonth
+    );
+
+
+    window.location.href =
+        "/penalty-log?" +
+        params.toString();
+
+}
+
+
+</script>
 
 
 </body>
