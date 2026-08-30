@@ -281,6 +281,7 @@ def init_db():
         discord_username TEXT,
         payment_status INTEGER NOT NULL DEFAULT 0,
         payment_date TEXT,
+        payment_exempt INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
     );
 
@@ -353,6 +354,25 @@ def init_db():
             ALTER TABLE members
             ADD COLUMN payment_date TEXT
         """)
+
+    if "payment_exempt" not in column_names:
+
+        conn.execute("""
+            ALTER TABLE members
+            ADD COLUMN payment_exempt
+            INTEGER NOT NULL DEFAULT 0
+        """)
+
+    conn.execute("""
+        UPDATE members
+        SET payment_exempt = 1
+        WHERE EXISTS (
+            SELECT 1
+            FROM payments p
+            WHERE p.member_id = members.id
+              AND p.payment_status = 2
+        )
+    """)
 
     old_members = conn.execute("""
         SELECT
@@ -1437,10 +1457,13 @@ def index():
             m.discord_username,
             m.created_at,
 
-            COALESCE(
-                pmt.payment_status,
-                0
-            ) AS payment_status,
+            CASE
+                WHEN m.payment_exempt = 1 THEN 2
+                ELSE COALESCE(
+                    pmt.payment_status,
+                    0
+                )
+            END AS payment_status,
 
             pmt.payment_date,
 
@@ -1491,6 +1514,7 @@ def index():
             m.discord_user_id,
             m.discord_username,
             m.created_at,
+            m.payment_exempt,
             pmt.payment_status,
             pmt.payment_date
 
@@ -1620,13 +1644,15 @@ def add_member():
             (
                 name,
                 character_id,
+                payment_exempt,
                 created_at
             )
 
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
         """, (
             name,
             character_id,
+            1 if status == 2 else 0,
             now
         ))
 
@@ -1769,12 +1795,14 @@ def edit_member(member_id):
 
             SET
                 name = ?,
-                character_id = ?
+                character_id = ?,
+                payment_exempt = ?
 
             WHERE id = ?
         """, (
             name,
             character_id,
+            1 if status == 2 else 0,
             member_id
         ))
 
@@ -1944,10 +1972,13 @@ def member_detail(member_id):
             m.discord_user_id,
             m.discord_username,
 
-            COALESCE(
-                pmt.payment_status,
-                0
-            ) AS payment_status,
+            CASE
+                WHEN m.payment_exempt = 1 THEN 2
+                ELSE COALESCE(
+                    pmt.payment_status,
+                    0
+                )
+            END AS payment_status,
 
             pmt.payment_date,
 
@@ -1976,6 +2007,7 @@ def member_detail(member_id):
             m.character_id,
             m.discord_user_id,
             m.discord_username,
+            m.payment_exempt,
             pmt.payment_status,
             pmt.payment_date
     """, (
