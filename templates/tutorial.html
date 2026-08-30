@@ -114,6 +114,16 @@
                 🔧 Szerelési Tutorial
             </a>
 
+            {% if logged_in %}
+
+            <a
+                href="/?month={{ selected_month if selected_month is defined else '' }}#discord"
+            >
+                ◉ Discord kapcsolatok
+            </a>
+
+            {% endif %}
+
         </nav>
 
     </aside>
