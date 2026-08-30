@@ -121,15 +121,11 @@
                 🔧 Szerelési Tutorial
             </a>
 
-            {% if logged_in %}
-
             <a
-                href="/?month={{ selected_month if selected_month is defined else '' }}#discord"
+                href="/#discord"
             >
                 ◉ Discord kapcsolatok
             </a>
-
-            {% endif %}
 
         </nav>
 
@@ -149,6 +145,7 @@
             </div>
 
             <div
+                class="page-header-title"
                 style="
                     flex: 1;
                     padding-left: 12px;
