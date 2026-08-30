@@ -397,7 +397,6 @@
                             <tr>
                                 <th>Típus</th>
                                 <th>Kategória</th>
-                                <th>Ár</th>
 
                                 {% if logged_in %}
                                 <th>Műveletek</th>
@@ -431,10 +430,6 @@
 
                                 </td>
 
-                                <td class="car-price">
-                                    {{ "{:,.0f}".format(car["price"]).replace(",", " ") }} $
-                                </td>
-
                                 {% if logged_in %}
 
                                 <td>
@@ -448,7 +443,6 @@
                                                 {{ car['id'] }},
                                                 {{ car['car_type']|tojson }},
                                                 {{ car['category']|tojson }},
-                                                {{ car['price'] }}
                                             )"
                                             title="Szerkesztés"
                                         >
@@ -485,7 +479,7 @@
                             <tr>
 
                                 <td
-                                    colspan="{% if logged_in %}4{% else %}3{% endif %}"
+                                    colspan="{% if logged_in %}3{% else %}2{% endif %}"
                                     class="empty"
                                 >
                                     Még nincs felvitt kocsi.
@@ -582,25 +576,16 @@
             </select>
 
 
-            <label>
-                Ár
-            </label>
-
-            <input
-                type="number"
-                name="price"
-                id="carPrice"
-                min="0"
-                step="1"
-                placeholder="Pl. 25000000"
-                required
-            >
-
-
             <div
                 class="category-preview"
                 id="carCategoryInfo"
             ></div>
+
+            <input
+                type="hidden"
+                name="price"
+                value="0"
+            >
 
 
             <button
@@ -819,11 +804,6 @@ function openCarAdd() {
             "carCategory"
         );
 
-    const price =
-        document.getElementById(
-            "carPrice"
-        );
-
     if (!modal) return;
 
     form.action =
@@ -838,8 +818,7 @@ function openCarAdd() {
     category.value =
         "kozep";
 
-    price.value =
-        "";
+    // Az ár mező a kocsi listában nem használt.
 
     updateCarCategoryInfo();
 
@@ -853,8 +832,7 @@ function openCarAdd() {
 function openCarEdit(
     id,
     carType,
-    category,
-    price
+    category
 ) {
 
     if (!loggedIn) {
@@ -891,11 +869,6 @@ function openCarEdit(
             "carCategory"
         );
 
-    const priceInput =
-        document.getElementById(
-            "carPrice"
-        );
-
     if (!modal) return;
 
     form.action =
@@ -912,8 +885,7 @@ function openCarEdit(
     categoryInput.value =
         category || "kozep";
 
-    priceInput.value =
-        price || 0;
+    // Az ár mező a kocsi listában nem használt.
 
     updateCarCategoryInfo();
 
