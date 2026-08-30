@@ -166,39 +166,41 @@
             ▣ <span>PRO GEAR GARAGE</span>
         </div>
 
-
         <nav>
 
             <a
                 class="active"
-                href="/?month={{ selected_month }}"
+                href="/"
             >
                 ☷ Névsor
             </a>
 
-
-            <a href="/penalty-log">
+            <a
+                class=""
+                href="/penalty-log"
+            >
                 ⚠ Hibapont napló
             </a>
 
-
             <a
+                class=""
                 href="/cars"
             >
                 🚗 Kocsi lista
             </a>
 
-
             <a
+                class=""
                 href="/tutorial"
             >
                 🔧 Szerelési Tutorial
             </a>
 
-
             {% if logged_in %}
 
-            <a href="#discord">
+            <a
+                href="/?month={{ selected_month if selected_month is defined else '' }}#discord"
+            >
                 ◉ Discord kapcsolatok
             </a>
 
