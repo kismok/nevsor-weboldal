@@ -1694,3 +1694,20 @@ header > div[style*="font-weight:700"] {
         inset 4px 0 0 #ff1111,
         0 0 15px rgba(255, 0, 0, 0.30);
 }
+
+
+/* =====================================================
+   KOCSI LISTA - FELSŐ FEJLÉC CÍME
+===================================================== */
+
+.page-header-title {
+    color: #00bfff !important;
+
+    text-shadow:
+        0 0 5px #00bfff,
+        0 0 10px #00bfff,
+        0 0 18px #008cff,
+        0 0 30px rgba(0, 140, 255, 0.75);
+
+    font-weight: 900 !important;
+}
