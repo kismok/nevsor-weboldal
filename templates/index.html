@@ -1419,13 +1419,13 @@
                         Inaktív tag
                     </span>
 
-                    <span class="switch">
-                        <input
-                            type="hidden"
-                            name="is_active"
-                            value="0"
-                        >
+                    <input
+                        type="hidden"
+                        name="is_active"
+                        value="0"
+                    >
 
+                    <span class="switch">
                         <input
                             type="checkbox"
                             id="editIsActive"
@@ -1885,7 +1885,7 @@ async function editMember(id) {
             activeCheckbox.checked =
                 Number(
                     m.is_active
-                ) === 1;
+                ) === 0;
 
         }
 
@@ -2950,10 +2950,10 @@ document.addEventListener(
     transition: .2s;
     box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
-.switch input:checked + .slider {
+.switch input[type="checkbox"]:checked + .slider {
     background: #22c55e;
 }
-.switch input:checked + .slider:before {
+.switch input[type="checkbox"]:checked + .slider:before {
     transform: translateX(22px);
 }
 .inactive-toggle-row small {
@@ -2969,5 +2969,54 @@ document.addEventListener(
 }
 .switch .slider.is-on:before {
     transform: translateX(22px) !important;
+}
+</style>
+
+<style>
+/* Inaktív tag kapcsoló: BALRA = aktív, JOBBRA = inaktív */
+.switch {
+    display: inline-block !important;
+    position: relative !important;
+    width: 52px !important;
+    height: 28px !important;
+}
+
+.switch input[type="checkbox"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+}
+
+.switch .slider {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    background: #d1d5db !important;
+    border-radius: 999px !important;
+    cursor: pointer !important;
+    transition: background-color .2s ease !important;
+}
+
+.switch .slider::before {
+    content: "" !important;
+    position: absolute !important;
+    width: 22px !important;
+    height: 22px !important;
+    left: 3px !important;
+    top: 3px !important;
+    background: #ffffff !important;
+    border-radius: 50% !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25) !important;
+    transition: transform .2s ease !important;
+}
+
+.switch input[type="checkbox"]:checked + .slider {
+    background: #22c55e !important;
+}
+
+.switch input[type="checkbox"]:checked + .slider::before {
+    transform: translateX(24px) !important;
 }
 </style>
