@@ -218,10 +218,21 @@ def month_display(month_value):
 # ADATBÁZIS
 # =========================================================
 
-DB_PATH = os.environ.get(
-    "DATABASE_PATH",
-    "/tmp/nevsor.db"
-)
+def get_database_path():
+    configured = os.environ.get("DATABASE_PATH")
+    if configured:
+        return configured
+    try:
+        os.makedirs("/data", exist_ok=True)
+        test_path = "/data/.write_test"
+        with open(test_path, "a", encoding="utf-8"):
+            pass
+        os.remove(test_path)
+        return "/data/nevsor.db"
+    except OSError:
+        return "/tmp/nevsor.db"
+
+DB_PATH = get_database_path()
 
 
 def get_connection():
@@ -2371,7 +2382,7 @@ def download_backup():
     backup_buffer.seek(0)
 
     filename = (
-        f"nevsor-mentes-"
+        f"pro-gear-garage-teljes-adatmentes-"
         f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.db"
     )
 
@@ -2456,10 +2467,21 @@ def restore_backup():
                 ).fetchall()
             }
 
-            if "members" not in required_tables:
+            required_app_tables = {
+                "members",
+                "penalty_log",
+                "payments",
+                "admins",
+                "cars",
+                "tutorial"
+            }
 
+            missing_tables = required_app_tables - required_tables
+
+            if missing_tables:
                 raise ValueError(
-                    "Ez nem a Névsor alkalmazás érvényes mentése."
+                    "A mentés hiányos. Hiányzó táblák: "
+                    + ", ".join(sorted(missing_tables))
                 )
 
         finally:
