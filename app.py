@@ -1757,7 +1757,8 @@ def edit_member(member_id):
         ""
     ).strip()
 
-    is_active = 1 if request.form.get("is_active") == "1" else 0
+    is_active_values = request.form.getlist("is_active")
+    is_active = 1 if "1" in is_active_values else 0
 
     payment_month = normalize_month(
         request.form.get(
