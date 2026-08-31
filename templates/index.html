@@ -1421,17 +1421,16 @@
 
                     <input
                         type="hidden"
+                        id="editIsActiveValue"
                         name="is_active"
-                        value="0"
+                        value="1"
                     >
 
                     <span class="switch">
                         <input
                             type="checkbox"
                             id="editIsActive"
-                            name="is_active"
                             value="1"
-                            checked
                         >
 
                         <span class="slider"></span>
@@ -1886,6 +1885,18 @@ async function editMember(id) {
                 Number(
                     m.is_active
                 ) === 0;
+
+            const activeValue =
+                document.getElementById(
+                    "editIsActiveValue"
+                );
+
+            if (activeValue) {
+                activeValue.value =
+                    Number(m.is_active) === 0
+                        ? "0"
+                        : "1";
+            }
 
         }
 
@@ -3020,3 +3031,48 @@ document.addEventListener(
     transform: translateX(24px) !important;
 }
 </style>
+
+<script>
+(function () {
+
+    const checkbox =
+        document.getElementById("editIsActive");
+
+    const hidden =
+        document.getElementById("editIsActiveValue");
+
+    const form =
+        document.getElementById("editForm");
+
+    function syncInactiveValue() {
+
+        if (!checkbox || !hidden) {
+            return;
+        }
+
+        // BALRA / unchecked = aktív = 1
+        // JOBBRA / checked = inaktív = 0
+        hidden.value =
+            checkbox.checked
+                ? "0"
+                : "1";
+    }
+
+    if (checkbox) {
+        checkbox.addEventListener(
+            "change",
+            syncInactiveValue
+        );
+    }
+
+    if (form) {
+        form.addEventListener(
+            "submit",
+            syncInactiveValue
+        );
+    }
+
+    syncInactiveValue();
+
+})();
+</script>
