@@ -218,21 +218,10 @@ def month_display(month_value):
 # ADATBÁZIS
 # =========================================================
 
-def get_database_path():
-    configured = os.environ.get("DATABASE_PATH")
-    if configured:
-        return configured
-    try:
-        os.makedirs("/data", exist_ok=True)
-        test_path = "/data/.write_test"
-        with open(test_path, "a", encoding="utf-8"):
-            pass
-        os.remove(test_path)
-        return "/data/nevsor.db"
-    except OSError:
-        return "/tmp/nevsor.db"
-
-DB_PATH = get_database_path()
+DB_PATH = os.environ.get(
+    "DATABASE_PATH",
+    "/tmp/nevsor.db"
+)
 
 
 def get_connection():
@@ -293,6 +282,7 @@ def init_db():
         payment_status INTEGER NOT NULL DEFAULT 0,
         payment_date TEXT,
         payment_exempt INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL
     );
 
@@ -372,6 +362,14 @@ def init_db():
             ALTER TABLE members
             ADD COLUMN payment_exempt
             INTEGER NOT NULL DEFAULT 0
+        """)
+
+    if "is_active" not in column_names:
+
+        conn.execute("""
+            ALTER TABLE members
+            ADD COLUMN is_active
+            INTEGER NOT NULL DEFAULT 1
         """)
 
     conn.execute("""
@@ -1448,6 +1446,11 @@ def logout():
 # FŐOLDAL
 # =========================================================
 
+@app.route("/inactive")
+def inactive():
+    return index()
+
+
 @app.route("/")
 def index():
 
@@ -1455,6 +1458,8 @@ def index():
         "q",
         ""
     ).strip()
+
+    inactive_view = request.path == "/inactive"
 
     selected_month = get_selected_month()
 
@@ -1467,6 +1472,7 @@ def index():
             m.discord_user_id,
             m.discord_username,
             m.created_at,
+            m.is_active,
 
             CASE
                 WHEN m.payment_exempt = 1 THEN 2
@@ -1500,15 +1506,24 @@ def index():
         selected_month
     ]
 
+    query += """
+        WHERE m.is_active = ?
+    """
+
+    params.append(
+        0 if inactive_view else 1
+    )
+
     if q:
 
         like = f"%{q}%"
 
         query += """
-            WHERE
+            AND (
                 m.name LIKE ?
                 OR m.character_id LIKE ?
                 OR m.discord_username LIKE ?
+            )
         """
 
         params.extend([
@@ -1525,6 +1540,7 @@ def index():
             m.discord_user_id,
             m.discord_username,
             m.created_at,
+            m.is_active,
             m.payment_exempt,
             pmt.payment_status,
             pmt.payment_date
@@ -1561,7 +1577,8 @@ def index():
         ),
         logged_in=is_logged_in(),
         current_username=get_current_username(),
-        admins=admins
+        admins=admins,
+        inactive_view=inactive_view
     )
 
 
@@ -1740,6 +1757,8 @@ def edit_member(member_id):
         ""
     ).strip()
 
+    is_active = 1 if request.form.get("is_active") == "1" else 0
+
     payment_month = normalize_month(
         request.form.get(
             "month",
@@ -1807,13 +1826,15 @@ def edit_member(member_id):
             SET
                 name = ?,
                 character_id = ?,
-                payment_exempt = ?
+                payment_exempt = ?,
+                is_active = ?
 
             WHERE id = ?
         """, (
             name,
             character_id,
             1 if status == 2 else 0,
+            is_active,
             member_id
         ))
 
@@ -1982,6 +2003,7 @@ def member_detail(member_id):
             m.character_id,
             m.discord_user_id,
             m.discord_username,
+            m.is_active,
 
             CASE
                 WHEN m.payment_exempt = 1 THEN 2
@@ -2058,6 +2080,12 @@ def member_detail(member_id):
 
         "discord_username":
             member["discord_username"],
+
+        "is_active":
+            int(
+                member["is_active"]
+                or 0
+            ),
 
         "payment_status":
             int(
@@ -2382,7 +2410,7 @@ def download_backup():
     backup_buffer.seek(0)
 
     filename = (
-        f"pro-gear-garage-teljes-adatmentes-"
+        f"nevsor-mentes-"
         f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.db"
     )
 
@@ -2467,21 +2495,10 @@ def restore_backup():
                 ).fetchall()
             }
 
-            required_app_tables = {
-                "members",
-                "penalty_log",
-                "payments",
-                "admins",
-                "cars",
-                "tutorial"
-            }
+            if "members" not in required_tables:
 
-            missing_tables = required_app_tables - required_tables
-
-            if missing_tables:
                 raise ValueError(
-                    "A mentés hiányos. Hiányzó táblák: "
-                    + ", ".join(sorted(missing_tables))
+                    "Ez nem a Névsor alkalmazás érvényes mentése."
                 )
 
         finally:
