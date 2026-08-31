@@ -169,7 +169,7 @@
         <nav>
 
             <a
-                class="active"
+                class="{{ 'active' if not inactive_view else '' }}"
                 href="/"
             >
                 ☷ Névsor
@@ -194,6 +194,12 @@
                 href="/tutorial"
             >
                 🔧 Szerelési Tutorial
+            </a>
+            <a
+                class="{{ 'active' if inactive_view else '' }}"
+                href="/inactive"
+            >
+                ⛔ Inaktivitás
             </a>
 
             {% if logged_in %}
@@ -320,7 +326,7 @@
                             href="{{ url_for('download_backup') }}"
                             class="secondary"
                         >
-                            💾 TELJES ADATMENTÉS
+                            📥 Biztonsági mentés
                         </a>
 
                         <button
@@ -328,7 +334,7 @@
                             type="button"
                             onclick="openRestore()"
                         >
-                            ♻️ TELJES ADAT VISSZAÁLLÍTÁS
+                            ♻️ Visszaállítás
                         </button>
 
                     </div>
@@ -1150,11 +1156,11 @@
         </button>
 
         <h2>
-            ♻️ TELJES ADAT VISSZAÁLLÍTÁS
+            ♻️ Biztonsági mentés visszaállítása
         </h2>
 
         <p class="muted">
-            Válaszd ki a korábban letöltött teljes Pro Gear Garage .db adatmentést.
+            Válaszd ki a korábban letöltött Névsor .db mentési fájlt.
             A jelenlegi adatbázisról a rendszer visszaállítás előtt automatikusan készít egy másolatot.
         </p>
 
@@ -1401,6 +1407,36 @@
                 id="editPaymentDate"
                 name="payment_date"
             >
+
+
+            <div class="inactive-toggle-row">
+
+                <label
+                    class="switch-label"
+                    for="editIsActive"
+                >
+                    <span>
+                        Inaktív tag
+                    </span>
+
+                    <span class="switch">
+                        <input
+                            type="checkbox"
+                            id="editIsActive"
+                            name="is_active"
+                            value="1"
+                            checked
+                        >
+
+                        <span class="slider"></span>
+                    </span>
+                </label>
+
+                <small class="muted">
+                    Bekapcsolva a tag az Inaktivitás menüpontba kerül.
+                </small>
+
+            </div>
 
 
             <button
@@ -1832,6 +1868,20 @@ async function editMember(id) {
             )
             .value =
             m.payment_date || "";
+
+        const activeCheckbox =
+            document.getElementById(
+                "editIsActive"
+            );
+
+        if (activeCheckbox) {
+
+            activeCheckbox.checked =
+                Number(
+                    m.is_active
+                ) === 1;
+
+        }
 
         document
             .getElementById(
@@ -2844,3 +2894,65 @@ document.addEventListener(
 
 </body>
 </html>
+
+<style>
+.inactive-toggle-row {
+    margin: 18px 0 8px;
+    padding: 14px;
+    border: 1px solid #e6eaf0;
+    border-radius: 10px;
+    background: #fafafa;
+}
+.switch-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+}
+.switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+.slider {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    background: #d1d5db;
+    border-radius: 999px;
+    transition: .2s;
+}
+.slider:before {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.switch input:checked + .slider {
+    background: #22c55e;
+}
+.switch input:checked + .slider:before {
+    transform: translateX(22px);
+}
+.inactive-toggle-row small {
+    display: block;
+    margin-top: 9px;
+    line-height: 1.5;
+}
+</style>
