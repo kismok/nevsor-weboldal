@@ -330,6 +330,15 @@ def init_db():
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS casco_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        date_from TEXT NOT NULL,
+        date_to TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
     """)
 
     columns = conn.execute(
@@ -1424,6 +1433,95 @@ def save_tutorial():
     return redirect(
         url_for("tutorial")
     )
+
+
+# =========================================================
+# CASCO TERVEZŐ
+# =========================================================
+
+@app.route("/casco")
+def casco():
+    if not require_admin():
+        return redirect(url_for("login"))
+
+    items = db().execute("""
+        SELECT
+            id,
+            name,
+            date_from,
+            date_to,
+            created_at,
+            updated_at
+        FROM casco_items
+        ORDER BY id DESC
+    """).fetchall()
+
+    return render_template(
+        "casco.html",
+        casco_items=items,
+        logged_in=True
+    )
+
+
+@app.route("/casco/save", methods=["POST"])
+def save_casco():
+    if not require_admin():
+        return redirect(url_for("login"))
+
+    item_id = request.form.get("id", "").strip()
+    name = request.form.get("name", "").strip()
+    date_from = request.form.get("date_from", "").strip()
+    date_to = request.form.get("date_to", "").strip()
+
+    if not name or not date_from or not date_to:
+        return redirect(url_for("casco"))
+
+    if date_from > date_to:
+        return redirect(url_for("casco"))
+
+    now = datetime.now().isoformat(timespec="seconds")
+    conn = db()
+
+    if item_id:
+        conn.execute("""
+            UPDATE casco_items
+            SET
+                name = ?,
+                date_from = ?,
+                date_to = ?,
+                updated_at = ?
+            WHERE id = ?
+        """, (name, date_from, date_to, now, int(item_id)))
+    else:
+        conn.execute("""
+            INSERT INTO casco_items
+            (
+                name,
+                date_from,
+                date_to,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+        """, (name, date_from, date_to, now, now))
+
+    conn.commit()
+    return redirect(url_for("casco"))
+
+
+@app.route("/casco/<int:item_id>/delete", methods=["POST"])
+def delete_casco(item_id):
+    if not require_admin():
+        return redirect(url_for("login"))
+
+    conn = db()
+    conn.execute(
+        "DELETE FROM casco_items WHERE id = ?",
+        (item_id,)
+    )
+    conn.commit()
+
+    return redirect(url_for("casco"))
 
 
 # =========================================================
