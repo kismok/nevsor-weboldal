@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Casco tervező - Pro Gear Garage</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="brand">
+            ▣ <span>PRO GEAR GARAGE</span>
+        </div>
+        <nav>
+            <a href="/">☷ Névsor</a>
+            <a href="/penalty-log">⚠ Hibapont napló</a>
+            <a href="/cars">🚗 Kocsi lista</a>
+            <a href="/tutorial">🔧 Szerelési Tutorial</a>
+            <a href="/inactive">⛔ Inaktivitás</a>
+            <a href="/?month={{ request.args.get('month', '') }}#discord">◉ Discord kapcsolatok</a>
+            <a class="active" href="/casco">🛡️ Casco tervező</a>
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <div class="hamb">☰</div>
+            <div style="flex:1;padding-left:12px;font-weight:700;">🛡️ Casco tervező</div>
+            <div class="auth-buttons">
+                <span class="logged-user">🔓 Szerkesztő mód</span>
+                <a href="/logout" class="secondary">Kijelentkezés</a>
+            </div>
+        </header>
+
+        <section class="content casco-page">
+            <div class="title-row">
+                <div>
+                    <h1>🛡️ CASCO TERVEZŐ</h1>
+                    <p>1024×1024-es Pro Gear Garage Casco kép készítése.</p>
+                </div>
+            </div>
+
+            <div class="casco-editor-grid">
+                <div>
+                    <div class="casco-form-card">
+                        <div class="casco-form-inner">
+                            <h2 id="cascoFormTitle">➕ Új Casco</h2>
+
+                            <form method="post" action="/casco/save" class="casco-form-grid">
+                                <input type="hidden" name="id" id="cascoId" value="">
+
+                                <div>
+                                    <label for="cascoName">Név</label>
+                                    <input type="text" name="name" id="cascoName"
+                                           maxlength="80" placeholder="Pl. Kis Mókesz"
+                                           required oninput="updatePreview()">
+                                </div>
+
+                                <div>
+                                    <label for="cascoFrom">Mettől</label>
+                                    <input type="date" name="date_from" id="cascoFrom"
+                                           required onchange="updatePreview()">
+                                </div>
+
+                                <div>
+                                    <label for="cascoTo">Meddig</label>
+                                    <input type="date" name="date_to" id="cascoTo"
+                                           required onchange="updatePreview()">
+                                </div>
+
+                                <div class="casco-form-actions">
+                                    <button type="submit" class="primary">💾 Casco mentése</button>
+                                    <button type="button" class="secondary" onclick="newCasco()">✨ Új</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="casco-list-card" style="margin-top:18px;">
+                        <div class="casco-list-inner">
+                            <h2>📋 Mentett Casco-k</h2>
+
+                            <div class="casco-items">
+                                {% for item in casco_items %}
+                                <div class="casco-item">
+                                    <div class="casco-item-head">
+                                        <div class="casco-item-name">{{ item["name"] }}</div>
+                                    </div>
+
+                                    <div class="casco-item-dates">
+                                        {{ item["date_from"] }} – {{ item["date_to"] }}
+                                    </div>
+
+                                    <div class="casco-item-actions">
+                                        <button type="button" class="secondary"
+                                            onclick='editCasco(
+                                                {{ item["id"] }},
+                                                {{ item["name"]|tojson }},
+                                                {{ item["date_from"]|tojson }},
+                                                {{ item["date_to"]|tojson }}
+                                            )'>
+                                            ✎ Szerkesztés
+                                        </button>
+
+                                        <button type="button" class="primary"
+                                            onclick='generateSavedCasco(
+                                                {{ item["name"]|tojson }},
+                                                {{ item["date_from"]|tojson }},
+                                                {{ item["date_to"]|tojson }}
+                                            )'>
+                                            🖼️ PNG
+                                        </button>
+
+                                        <form method="post" action="/casco/{{ item['id'] }}/delete"
+                                              onsubmit="return confirm('Biztosan törlöd ezt a Casco-t?')"
+                                              style="display:inline;">
+                                            <button type="submit" class="secondary">🗑️ Törlés</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="casco-empty">Még nincs mentett Casco.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="casco-preview-card">
+                    <h2 style="margin:8px 8px 16px;">🖼️ Élő előnézet</h2>
+
+                    <div class="casco-canvas-wrap">
+                        <canvas id="cascoCanvas" width="1024" height="1024"></canvas>
+                    </div>
+
+                    <div class="casco-preview-note">
+                        A vászon pontosan 1024×1024 px.
+                    </div>
+
+                    <button type="button" class="primary full"
+                            style="margin-top:12px;"
+                            onclick="downloadCurrentCasco()">
+                        🖼️ Aktuális Casco PNG mentése
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+const canvas = document.getElementById("cascoCanvas");
+const ctx = canvas.getContext("2d");
+
+function safeText(value, fallback) {
+    const text = (value || "").trim();
+    return text || fallback;
+}
+
+function formatDate(value) {
+    if (!value) return "----.--.--";
+    const parts = value.split("-");
+    if (parts.length !== 3) return value;
+    return parts[0] + "." + parts[1] + "." + parts[2];
+}
+
+function roundedRect(ctx, x, y, w, h, r) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+}
+
+function drawGoldLine(x1, y1, x2, y2, width = 2) {
+    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+    gradient.addColorStop(0, "#5f4512");
+    gradient.addColorStop(0.5, "#f7d978");
+    gradient.addColorStop(1, "#6e5015");
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+function drawCasco(name, dateFrom, dateTo) {
+    const W = 1024;
+    const H = 1024;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#080808";
+    ctx.fillRect(0, 0, W, H);
+
+    for (let i = 0; i < 900; i++) {
+        const x = (i * 83) % W;
+        const y = (i * 137) % H;
+        const a = 0.012 + ((i * 17) % 24) / 1000;
+        ctx.fillStyle = "rgba(255,255,255," + a + ")";
+        ctx.fillRect(x, y, 1, 1);
+    }
+
+    ctx.strokeStyle = "#3d2b0d";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(24, 24, 976, 976);
+
+    ctx.strokeStyle = "#80611e";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(42, 42, 940, 940);
+
+    roundedRect(ctx, 66, 62, 892, 205, 24);
+    ctx.fillStyle = "#080808";
+    ctx.fill();
+    ctx.strokeStyle = "#7e5e1c";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.font = "900 66px Arial";
+    ctx.fillStyle = "#f5d77d";
+    ctx.shadowColor = "rgba(245,215,125,.55)";
+    ctx.shadowBlur = 18;
+    ctx.fillText("PRO GEAR GARAGE", 512, 140);
+    ctx.shadowBlur = 0;
+
+    drawGoldLine(240, 175, 784, 175, 2);
+
+    ctx.save();
+    ctx.translate(512, 222);
+    ctx.rotate(-0.015);
+
+    const badge = ctx.createLinearGradient(-300, -42, 300, 42);
+    badge.addColorStop(0, "#9a741f");
+    badge.addColorStop(0.18, "#f8dc7c");
+    badge.addColorStop(0.5, "#fff1ad");
+    badge.addColorStop(0.82, "#e8c45b");
+    badge.addColorStop(1, "#806018");
+
+    roundedRect(ctx, -305, -45, 610, 90, 12);
+    ctx.fillStyle = badge;
+    ctx.shadowColor = "rgba(255,220,100,.55)";
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#0a0a0a";
+    ctx.font = "900 44px Arial";
+    ctx.fillText("CASCO LISTA", 0, 15);
+    ctx.restore();
+
+    roundedRect(ctx, 66, 310, 892, 545, 20);
+    ctx.fillStyle = "rgba(0,0,0,.55)";
+    ctx.fill();
+    ctx.strokeStyle = "#5f4615";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.font = "700 26px Arial";
+    ctx.fillStyle = "#b8923d";
+    ctx.fillText("BIZTOSÍTOTT SZEMÉLY", 110, 390);
+
+    ctx.font = "900 58px Arial";
+    ctx.fillStyle = "#f5d77d";
+    ctx.shadowColor = "rgba(245,215,125,.35)";
+    ctx.shadowBlur = 10;
+    ctx.fillText(safeText(name, "NÉV"), 110, 458);
+    ctx.shadowBlur = 0;
+
+    drawGoldLine(110, 492, 914, 492, 2);
+
+    ctx.font = "700 26px Arial";
+    ctx.fillStyle = "#b8923d";
+    ctx.fillText("CASCO ÉRVÉNYESSÉGE", 110, 555);
+
+    ctx.font = "800 42px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(formatDate(dateFrom) + "  –  " + formatDate(dateTo), 110, 625);
+
+    roundedRect(ctx, 110, 690, 804, 92, 12);
+    ctx.fillStyle = "rgba(185,145,52,.10)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(185,145,52,.55)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.font = "900 32px Arial";
+    ctx.fillStyle = "#f5d77d";
+    ctx.fillText("ÉRVÉNYES CASCO", 512, 748);
+
+    drawGoldLine(150, 910, 874, 910, 2);
+
+    ctx.font = "700 22px Arial";
+    ctx.fillStyle = "#8d6b24";
+    ctx.fillText("PRO GEAR GARAGE", 512, 952);
+    ctx.textAlign = "left";
+}
+
+function updatePreview() {
+    drawCasco(
+        document.getElementById("cascoName").value,
+        document.getElementById("cascoFrom").value,
+        document.getElementById("cascoTo").value
+    );
+}
+
+function newCasco() {
+    document.getElementById("cascoFormTitle").textContent = "➕ Új Casco";
+    document.getElementById("cascoId").value = "";
+    document.getElementById("cascoName").value = "";
+    document.getElementById("cascoFrom").value = "";
+    document.getElementById("cascoTo").value = "";
+    updatePreview();
+    window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+function editCasco(id, name, dateFrom, dateTo) {
+    document.getElementById("cascoFormTitle").textContent = "✎ Casco szerkesztése";
+    document.getElementById("cascoId").value = id;
+    document.getElementById("cascoName").value = name;
+    document.getElementById("cascoFrom").value = dateFrom;
+    document.getElementById("cascoTo").value = dateTo;
+    updatePreview();
+    window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+function generateSavedCasco(name, dateFrom, dateTo) {
+    drawCasco(name, dateFrom, dateTo);
+    downloadCanvas(name);
+}
+
+function downloadCurrentCasco() {
+    const name = safeText(document.getElementById("cascoName").value, "casco");
+    updatePreview();
+    downloadCanvas(name);
+}
+
+function downloadCanvas(name) {
+    const safeName = name.trim()
+        .replace(/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ _-]/g, "")
+        .replace(/\s+/g, "_")
+        .slice(0, 60) || "casco";
+
+    const link = document.createElement("a");
+    link.download = "casco_" + safeName + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
+
+drawCasco("", "", "");
+</script>
+</body>
+</html>
