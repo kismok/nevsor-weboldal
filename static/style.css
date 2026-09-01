@@ -1711,3 +1711,138 @@ header > div[style*="font-weight:700"] {
 
     font-weight: 900 !important;
 }
+
+/* =====================================================
+   CASCO TERVEZŐ - ÚJ FUNKCIÓ
+   Csak az új Casco oldal stílusai.
+   A meglévő stílusokhoz nem nyúl.
+===================================================== */
+
+.casco-page {
+    width: 100%;
+}
+
+.casco-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) minmax(420px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.casco-form-card,
+.casco-list-card,
+.casco-preview-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.casco-form-inner,
+.casco-list-inner {
+    padding: 22px;
+}
+
+.casco-form-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.casco-form-grid label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.casco-form-grid input {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+}
+
+.casco-form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.casco-preview-card {
+    padding: 14px;
+}
+
+.casco-canvas-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #080808;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#cascoCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.casco-preview-note {
+    margin: 10px 4px 2px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.casco-items {
+    display: grid;
+    gap: 12px;
+}
+
+.casco-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    background: #fff;
+}
+
+.casco-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.casco-item-name {
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.casco-item-dates {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.casco-item-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.casco-empty {
+    padding: 28px;
+    text-align: center;
+    color: var(--muted);
+}
+
+@media (max-width: 950px) {
+    .casco-editor-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
