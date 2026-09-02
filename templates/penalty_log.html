@@ -63,20 +63,18 @@
                 🔧 Szerelési Tutorial
             </a>
 
-            <a
-                class=""
-                href="/inactive"
-            >
-                ⛔ Inaktivitás
-            </a>
-
-
             {% if logged_in %}
 
             <a
                 href="/?month={{ selected_month if selected_month is defined else '' }}#discord"
             >
                 ◉ Discord kapcsolatok
+            </a>
+
+            <a
+                href="/casco"
+            >
+                🛡️ Casco tervező
             </a>
 
             {% endif %}
