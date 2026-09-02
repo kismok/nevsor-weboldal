@@ -5,13 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Casco tervező - Pro Gear Garage</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .casco-people { display:flex; flex-direction:column; gap:12px; }
+        .casco-person-row { display:grid; grid-template-columns:minmax(180px,1.5fr) minmax(140px,1fr) minmax(140px,1fr) auto; gap:10px; align-items:end; padding:14px; border:1px solid var(--border); border-radius:10px; background:#fafbfc; }
+        .casco-person-row label { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--muted); }
+        .casco-person-row input { width:100%; }
+        .casco-person-remove { height:42px; }
+        .casco-editor-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+        .casco-preview-card { min-width:0; }
+        .casco-canvas-wrap { width:100%; overflow:auto; display:flex; justify-content:center; padding:10px; background:#111; border-radius:12px; }
+        #cascoCanvas { width:min(100%, 720px); height:auto; aspect-ratio:1/1; display:block; background:#080808; }
+        .casco-saved-item { border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:12px; }
+        .casco-saved-names { font-weight:800; margin-bottom:8px; }
+        .casco-saved-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        @media(max-width:900px){ .casco-person-row{grid-template-columns:1fr 1fr;} .casco-person-remove{width:100%;} }
+        @media(max-width:600px){ .casco-person-row{grid-template-columns:1fr;} }
+    </style>
 </head>
 <body>
 <div class="app">
     <aside class="sidebar">
-        <div class="brand">
-            ▣ <span>PRO GEAR GARAGE</span>
-        </div>
+        <div class="brand">▣ <span>PRO GEAR GARAGE</span></div>
         <nav>
             <a href="/">☷ Névsor</a>
             <a href="/penalty-log">⚠ Hibapont napló</a>
@@ -22,7 +36,6 @@
             <a class="active" href="/casco">🛡️ Casco tervező</a>
         </nav>
     </aside>
-
     <main>
         <header>
             <div class="hamb">☰</div>
@@ -37,7 +50,7 @@
             <div class="title-row">
                 <div>
                     <h1>🛡️ CASCO TERVEZŐ</h1>
-                    <p>1024×1024-es Pro Gear Garage Casco kép készítése.</p>
+                    <p>Több személy egyetlen 1024×1024-es Casco lapon.</p>
                 </div>
             </div>
 
@@ -45,104 +58,49 @@
                 <div>
                     <div class="casco-form-card">
                         <div class="casco-form-inner">
-                            <h2 id="cascoFormTitle">➕ Új Casco</h2>
-
-                            <form method="post" action="/casco/save" class="casco-form-grid">
-                                <input type="hidden" name="id" id="cascoId" value="">
-
-                                <div>
-                                    <label for="cascoName">Név</label>
-                                    <input type="text" name="name" id="cascoName"
-                                           maxlength="80" placeholder="Pl. Kis Mókesz"
-                                           required oninput="updatePreview()">
-                                </div>
-
-                                <div>
-                                    <label for="cascoFrom">Mettől</label>
-                                    <input type="date" name="date_from" id="cascoFrom"
-                                           required onchange="updatePreview()">
-                                </div>
-
-                                <div>
-                                    <label for="cascoTo">Meddig</label>
-                                    <input type="date" name="date_to" id="cascoTo"
-                                           required onchange="updatePreview()">
-                                </div>
-
-                                <div class="casco-form-actions">
-                                    <button type="submit" class="primary">💾 Casco mentése</button>
-                                    <button type="button" class="secondary" onclick="newCasco()">✨ Új</button>
-                                </div>
-                            </form>
+                            <h2 id="cascoFormTitle">➕ Új Casco lap</h2>
+                            <input type="hidden" id="cascoId" value="">
+                            <div id="people" class="casco-people"></div>
+                            <div class="casco-editor-actions">
+                                <button type="button" class="secondary" onclick="addPerson()">＋ Személy hozzáadása</button>
+                                <button type="button" class="primary" onclick="saveCasco()">💾 Casco lap mentése</button>
+                                <button type="button" class="secondary" onclick="newCasco()">✨ Új lap</button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="casco-list-card" style="margin-top:18px;">
                         <div class="casco-list-inner">
-                            <h2>📋 Mentett Casco-k</h2>
-
-                            <div class="casco-items">
-                                {% for item in casco_items %}
-                                <div class="casco-item">
-                                    <div class="casco-item-head">
-                                        <div class="casco-item-name">{{ item["name"] }}</div>
-                                    </div>
-
-                                    <div class="casco-item-dates">
-                                        {{ item["date_from"] }} – {{ item["date_to"] }}
-                                    </div>
-
-                                    <div class="casco-item-actions">
-                                        <button type="button" class="secondary"
-                                            onclick='editCasco(
-                                                {{ item["id"] }},
-                                                {{ item["name"]|tojson }},
-                                                {{ item["date_from"]|tojson }},
-                                                {{ item["date_to"]|tojson }}
-                                            )'>
-                                            ✎ Szerkesztés
-                                        </button>
-
-                                        <button type="button" class="primary"
-                                            onclick='generateSavedCasco(
-                                                {{ item["name"]|tojson }},
-                                                {{ item["date_from"]|tojson }},
-                                                {{ item["date_to"]|tojson }}
-                                            )'>
-                                            🖼️ PNG
-                                        </button>
-
-                                        <form method="post" action="/casco/{{ item['id'] }}/delete"
-                                              onsubmit="return confirm('Biztosan törlöd ezt a Casco-t?')"
-                                              style="display:inline;">
-                                            <button type="submit" class="secondary">🗑️ Törlés</button>
-                                        </form>
-                                    </div>
+                            <h2>📋 Mentett Casco lapok</h2>
+                            {% for item in casco_items %}
+                            <div class="casco-saved-item">
+                                <div class="casco-saved-names">
+                                    {% for person in item["items"] %}
+                                        {{ person["name"] }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
                                 </div>
-                                {% else %}
-                                <div class="casco-empty">Még nincs mentett Casco.</div>
-                                {% endfor %}
+                                <div class="casco-saved-actions">
+                                    <button type="button" class="secondary" onclick='editCasco({{ item["id"] }}, {{ item["items"]|tojson }})'>✎ Szerkesztés</button>
+                                    <button type="button" class="primary" onclick='generateSavedCasco({{ item["items"]|tojson }})'>🖼️ PNG</button>
+                                    <form method="post" action="/casco/{{ item['id'] }}/delete" style="display:inline;" onsubmit="return confirm('Biztosan törlöd ezt a Casco lapot?')">
+                                        <button type="submit" class="secondary">🗑️ Törlés</button>
+                                    </form>
+                                </div>
                             </div>
+                            {% else %}
+                                <div class="casco-empty">Még nincs mentett Casco lap.</div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
 
                 <div class="casco-preview-card">
                     <h2 style="margin:8px 8px 16px;">🖼️ Élő előnézet</h2>
-
                     <div class="casco-canvas-wrap">
                         <canvas id="cascoCanvas" width="1024" height="1024"></canvas>
                     </div>
-
-                    <div class="casco-preview-note">
-                        A vászon pontosan 1024×1024 px.
-                    </div>
-
-                    <button type="button" class="primary full"
-                            style="margin-top:12px;"
-                            onclick="downloadCurrentCasco()">
-                        🖼️ Aktuális Casco PNG mentése
-                    </button>
+                    <div class="casco-preview-note">A vászon pontosan 1024×1024 px.</div>
+                    <button type="button" class="primary full" style="margin-top:12px;" onclick="downloadCurrentCasco()">🖼️ Aktuális Casco PNG mentése</button>
                 </div>
             </div>
         </section>
@@ -152,208 +110,60 @@
 <script>
 const canvas = document.getElementById("cascoCanvas");
 const ctx = canvas.getContext("2d");
+const peopleEl = document.getElementById("people");
 
-function safeText(value, fallback) {
-    const text = (value || "").trim();
-    return text || fallback;
-}
-
-function formatDate(value) {
-    if (!value) return "----.--.--";
-    const parts = value.split("-");
-    if (parts.length !== 3) return value;
-    return parts[0] + "." + parts[1] + "." + parts[2];
-}
-
-function roundedRect(ctx, x, y, w, h, r) {
-    const radius = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + w, y, x + w, y + h, radius);
-    ctx.arcTo(x + w, y + h, x, y + h, radius);
-    ctx.arcTo(x, y + h, x, y, radius);
-    ctx.arcTo(x, y, x + w, y, radius);
-    ctx.closePath();
-}
-
-function drawGoldLine(x1, y1, x2, y2, width = 2) {
-    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-    gradient.addColorStop(0, "#5f4512");
-    gradient.addColorStop(0.5, "#f7d978");
-    gradient.addColorStop(1, "#6e5015");
-    ctx.strokeStyle = gradient;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-}
-
-function drawCasco(name, dateFrom, dateTo) {
-    const W = 1024;
-    const H = 1024;
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#080808";
-    ctx.fillRect(0, 0, W, H);
-
-    for (let i = 0; i < 900; i++) {
-        const x = (i * 83) % W;
-        const y = (i * 137) % H;
-        const a = 0.012 + ((i * 17) % 24) / 1000;
-        ctx.fillStyle = "rgba(255,255,255," + a + ")";
-        ctx.fillRect(x, y, 1, 1);
-    }
-
-    ctx.strokeStyle = "#3d2b0d";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(24, 24, 976, 976);
-
-    ctx.strokeStyle = "#80611e";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(42, 42, 940, 940);
-
-    roundedRect(ctx, 66, 62, 892, 205, 24);
-    ctx.fillStyle = "#080808";
-    ctx.fill();
-    ctx.strokeStyle = "#7e5e1c";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.textAlign = "center";
-    ctx.font = "900 66px Arial";
-    ctx.fillStyle = "#f5d77d";
-    ctx.shadowColor = "rgba(245,215,125,.55)";
-    ctx.shadowBlur = 18;
-    ctx.fillText("PRO GEAR GARAGE", 512, 140);
-    ctx.shadowBlur = 0;
-
-    drawGoldLine(240, 175, 784, 175, 2);
-
-    ctx.save();
-    ctx.translate(512, 222);
-    ctx.rotate(-0.015);
-
-    const badge = ctx.createLinearGradient(-300, -42, 300, 42);
-    badge.addColorStop(0, "#9a741f");
-    badge.addColorStop(0.18, "#f8dc7c");
-    badge.addColorStop(0.5, "#fff1ad");
-    badge.addColorStop(0.82, "#e8c45b");
-    badge.addColorStop(1, "#806018");
-
-    roundedRect(ctx, -305, -45, 610, 90, 12);
-    ctx.fillStyle = badge;
-    ctx.shadowColor = "rgba(255,220,100,.55)";
-    ctx.shadowBlur = 20;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = "#0a0a0a";
-    ctx.font = "900 44px Arial";
-    ctx.fillText("CASCO LISTA", 0, 15);
-    ctx.restore();
-
-    roundedRect(ctx, 66, 310, 892, 545, 20);
-    ctx.fillStyle = "rgba(0,0,0,.55)";
-    ctx.fill();
-    ctx.strokeStyle = "#5f4615";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.textAlign = "left";
-    ctx.font = "700 26px Arial";
-    ctx.fillStyle = "#b8923d";
-    ctx.fillText("BIZTOSÍTOTT SZEMÉLY", 110, 390);
-
-    ctx.font = "900 58px Arial";
-    ctx.fillStyle = "#f5d77d";
-    ctx.shadowColor = "rgba(245,215,125,.35)";
-    ctx.shadowBlur = 10;
-    ctx.fillText(safeText(name, "NÉV"), 110, 458);
-    ctx.shadowBlur = 0;
-
-    drawGoldLine(110, 492, 914, 492, 2);
-
-    ctx.font = "700 26px Arial";
-    ctx.fillStyle = "#b8923d";
-    ctx.fillText("CASCO ÉRVÉNYESSÉGE", 110, 555);
-
-    ctx.font = "800 42px Arial";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(formatDate(dateFrom) + "  –  " + formatDate(dateTo), 110, 625);
-
-    roundedRect(ctx, 110, 690, 804, 92, 12);
-    ctx.fillStyle = "rgba(185,145,52,.10)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(185,145,52,.55)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.textAlign = "center";
-    ctx.font = "900 32px Arial";
-    ctx.fillStyle = "#f5d77d";
-    ctx.fillText("ÉRVÉNYES CASCO", 512, 748);
-
-    drawGoldLine(150, 910, 874, 910, 2);
-
-    ctx.font = "700 22px Arial";
-    ctx.fillStyle = "#8d6b24";
-    ctx.fillText("PRO GEAR GARAGE", 512, 952);
-    ctx.textAlign = "left";
-}
-
-function updatePreview() {
-    drawCasco(
-        document.getElementById("cascoName").value,
-        document.getElementById("cascoFrom").value,
-        document.getElementById("cascoTo").value
-    );
-}
-
-function newCasco() {
-    document.getElementById("cascoFormTitle").textContent = "➕ Új Casco";
-    document.getElementById("cascoId").value = "";
-    document.getElementById("cascoName").value = "";
-    document.getElementById("cascoFrom").value = "";
-    document.getElementById("cascoTo").value = "";
+function esc(v){ return String(v ?? "").replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+function formatDate(v){ if(!v) return "----.--.--"; const p=v.split("-"); return p.length===3 ? `${p[0]}.${p[1]}.${p[2]}` : v; }
+function roundedRect(x,y,w,h,r){ const q=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+q,y); ctx.arcTo(x+w,y,x+w,y+h,q); ctx.arcTo(x+w,y+h,x,y+h,q); ctx.arcTo(x,y+h,x,y,q); ctx.arcTo(x,y,x+w,y,q); ctx.closePath(); }
+function goldLine(x1,y1,x2,y2,width=2){ const g=ctx.createLinearGradient(x1,y1,x2,y2); g.addColorStop(0,"#5f4512");g.addColorStop(.5,"#f7d978");g.addColorStop(1,"#6e5015");ctx.strokeStyle=g;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke(); }
+function getPeople(){ return [...document.querySelectorAll('.casco-person-row')].map(r=>({name:r.querySelector('.person-name').value.trim(),date_from:r.querySelector('.person-from').value,date_to:r.querySelector('.person-to').value})).filter(x=>x.name); }
+function addPerson(person={}){
+    const row=document.createElement('div'); row.className='casco-person-row';
+    row.innerHTML=`<div><label>Név</label><input class="person-name" type="text" maxlength="80" placeholder="Pl. Kis Mókesz" value="${esc(person.name||'')}"></div>
+    <div><label>Mettől</label><input class="person-from" type="date" value="${esc(person.date_from||'')}"></div>
+    <div><label>Meddig</label><input class="person-to" type="date" value="${esc(person.date_to||'')}"></div>
+    <button type="button" class="secondary casco-person-remove" onclick="this.parentElement.remove(); updatePreview();">🗑️</button>`;
+    peopleEl.appendChild(row);
+    row.querySelectorAll('input').forEach(i=>i.addEventListener('input',updatePreview));
     updatePreview();
-    window.scrollTo({top: 0, behavior: "smooth"});
+}
+function newCasco(){ document.getElementById('cascoId').value='';document.getElementById('cascoFormTitle').textContent='➕ Új Casco lap';peopleEl.innerHTML='';addPerson(); }
+function editCasco(id,items){ document.getElementById('cascoId').value=id;document.getElementById('cascoFormTitle').textContent='✎ Casco lap szerkesztése';peopleEl.innerHTML='';(items||[]).forEach(addPerson);if(!(items||[]).length)addPerson();updatePreview();window.scrollTo({top:0,behavior:'smooth'}); }
+function saveCasco(){ const items=getPeople(); if(!items.length){alert('Adj hozzá legalább egy nevet.');return;} const form=document.createElement('form');form.method='post';form.action='/casco/save';
+    const id=document.createElement('input');id.type='hidden';id.name='id';id.value=document.getElementById('cascoId').value;form.appendChild(id);
+    const data=document.createElement('input');data.type='hidden';data.name='items_json';data.value=JSON.stringify(items);form.appendChild(data);document.body.appendChild(form);form.submit(); }
+function generateSavedCasco(items){ drawCasco(items||[]); downloadCanvas((items&&items[0]&&items[0].name)||'casco'); }
+function downloadCurrentCasco(){ const items=getPeople();drawCasco(items);downloadCanvas((items[0]&&items[0].name)||'casco'); }
+function downloadCanvas(name){ const safe=String(name).replace(/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ _-]/g,'').replace(/\s+/g,'_').slice(0,60)||'casco';const a=document.createElement('a');a.download='casco_'+safe+'.png';a.href=canvas.toDataURL('image/png');a.click(); }
+
+function drawCasco(items){
+    const W=1024,H=1024;ctx.clearRect(0,0,W,H);ctx.fillStyle='#080808';ctx.fillRect(0,0,W,H);
+    for(let i=0;i<900;i++){const x=(i*83)%W,y=(i*137)%H,a=.012+((i*17)%24)/1000;ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillRect(x,y,1,1);}
+    ctx.strokeStyle='#3d2b0d';ctx.lineWidth=3;ctx.strokeRect(24,24,976,976);ctx.strokeStyle='#80611e';ctx.lineWidth=2;ctx.strokeRect(42,42,940,940);
+    roundedRect(66,62,892,205,24);ctx.fillStyle='#080808';ctx.fill();ctx.strokeStyle='#7e5e1c';ctx.lineWidth=2;ctx.stroke();
+    ctx.textAlign='center';ctx.font='900 66px Arial';ctx.fillStyle='#f5d77d';ctx.shadowColor='rgba(245,215,125,.55)';ctx.shadowBlur=18;ctx.fillText('PRO GEAR GARAGE',512,140);ctx.shadowBlur=0;
+    goldLine(240,175,784,175,2);
+    // A CASCO LISTA fixen, pontosan középre kerül a PRO GEAR GARAGE alatt.
+    ctx.save();ctx.translate(512,222);
+    const badge=ctx.createLinearGradient(-305,0,305,0);badge.addColorStop(0,'#9a741f');badge.addColorStop(.18,'#f8dc7c');badge.addColorStop(.5,'#fff1ad');badge.addColorStop(.82,'#e8c45b');badge.addColorStop(1,'#806018');
+    roundedRect(-305,-45,610,90,12);ctx.fillStyle=badge;ctx.shadowColor='rgba(255,220,100,.55)';ctx.shadowBlur=20;ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#0a0a0a';ctx.font='900 44px Arial';ctx.textAlign='center';ctx.fillText('CASCO LISTA',0,15);ctx.restore();
+
+    roundedRect(66,310,892,545,20);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fill();ctx.strokeStyle='#5f4615';ctx.lineWidth=2;ctx.stroke();
+    const list=(items||[]).filter(x=>x&&x.name);const count=list.length;
+    ctx.textAlign='left';ctx.font='700 26px Arial';ctx.fillStyle='#b8923d';ctx.fillText('NÉV',110,365);
+    const top=415, bottom=790, gap=count>1?Math.min(92,(bottom-top)/(count)):150;
+    const maxNameSize=count<=2?48:count<=4?38:count<=6?31:26;
+    list.slice(0,7).forEach((p,i)=>{
+        const y=top+i*gap;ctx.font=`900 ${maxNameSize}px Arial`;ctx.fillStyle='#f5d77d';ctx.shadowColor='rgba(245,215,125,.35)';ctx.shadowBlur=8;ctx.fillText(p.name,110,y);ctx.shadowBlur=0;
+        ctx.font='700 19px Arial';ctx.fillStyle='#8f7130';ctx.fillText(`${formatDate(p.date_from)}  –  ${formatDate(p.date_to)}`,110,y+30);
+        if(i<Math.min(list.length,7)-1)goldLine(110,y+52,914,y+52,1);
+    });
+    if(count>7){ctx.textAlign='center';ctx.font='700 20px Arial';ctx.fillStyle='#b8923d';ctx.fillText(`+ ${count-7} további név`,512,820);}
+    roundedRect(110,835,804,52,10);ctx.fillStyle='rgba(185,145,52,.10)';ctx.fill();ctx.strokeStyle='rgba(185,145,52,.55)';ctx.stroke();ctx.textAlign='center';ctx.font='900 24px Arial';ctx.fillStyle='#f5d77d';ctx.fillText('ÉRVÉNYES CASCO',512,869);
+    goldLine(150,910,874,910,2);ctx.font='700 22px Arial';ctx.fillStyle='#8d6b24';ctx.fillText('PRO GEAR GARAGE',512,952);ctx.textAlign='left';
 }
 
-function editCasco(id, name, dateFrom, dateTo) {
-    document.getElementById("cascoFormTitle").textContent = "✎ Casco szerkesztése";
-    document.getElementById("cascoId").value = id;
-    document.getElementById("cascoName").value = name;
-    document.getElementById("cascoFrom").value = dateFrom;
-    document.getElementById("cascoTo").value = dateTo;
-    updatePreview();
-    window.scrollTo({top: 0, behavior: "smooth"});
-}
-
-function generateSavedCasco(name, dateFrom, dateTo) {
-    drawCasco(name, dateFrom, dateTo);
-    downloadCanvas(name);
-}
-
-function downloadCurrentCasco() {
-    const name = safeText(document.getElementById("cascoName").value, "casco");
-    updatePreview();
-    downloadCanvas(name);
-}
-
-function downloadCanvas(name) {
-    const safeName = name.trim()
-        .replace(/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ _-]/g, "")
-        .replace(/\s+/g, "_")
-        .slice(0, 60) || "casco";
-
-    const link = document.createElement("a");
-    link.download = "casco_" + safeName + ".png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-}
-
-drawCasco("", "", "");
+newCasco();
 </script>
 </body>
 </html>
