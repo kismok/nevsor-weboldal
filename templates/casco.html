@@ -119,7 +119,7 @@ function goldLine(x1,y1,x2,y2,width=2){ const g=ctx.createLinearGradient(x1,y1,x
 function getPeople(){ return [...document.querySelectorAll('.casco-person-row')].map(r=>({name:r.querySelector('.person-name').value.trim(),date_from:r.querySelector('.person-from').value,date_to:r.querySelector('.person-to').value})).filter(x=>x.name); }
 function addPerson(person={}){
     const row=document.createElement('div'); row.className='casco-person-row';
-    row.innerHTML=`<div><label>Név</label><input class="person-name" type="text" maxlength="80" placeholder="Pl. Kis Mókesz" value="${esc(person.name||'')}"></div>
+    row.innerHTML=`<div><label>Név</label><input class="person-name" type="text" maxlength="80" value="${esc(person.name||'')}"></div>
     <div><label>Mettől</label><input class="person-from" type="date" value="${esc(person.date_from||'')}"></div>
     <div><label>Meddig</label><input class="person-to" type="date" value="${esc(person.date_to||'')}"></div>
     <button type="button" class="secondary casco-person-remove" onclick="this.parentElement.remove(); updatePreview();">🗑️</button>`;
@@ -219,7 +219,7 @@ function drawCasco(items){
             ctx.fillText(String(person.name), 110, y);
             ctx.shadowBlur = 0;
 
-            ctx.font = '700 19px Arial, sans-serif';
+            ctx.font = '700 28px Arial, sans-serif';
             ctx.fillStyle = '#8f7130';
             ctx.fillText(`${formatDate(person.date_from)}  –  ${formatDate(person.date_to)}`, 110, y + 30);
 
