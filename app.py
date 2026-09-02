@@ -5,9 +5,9 @@ import asyncio
 import re
 import unicodedata
 import io
-import json
 import tempfile
 import shutil
+import json
 
 from openpyxl import Workbook
 
@@ -4006,6 +4006,8 @@ def ensure_casco_table():
 @app.route("/casco")
 def casco():
 
+    ensure_casco_table()
+
     if not require_login():
 
         return redirect(
@@ -4174,11 +4176,11 @@ def delete_casco(sheet_id):
     )
 
 
-ensure_casco_table()
-
 # =========================================================
 # ALKALMAZÁS INDÍTÁS ELŐTT
 # =========================================================
+
+ensure_casco_table()
 
 init_db()
 
