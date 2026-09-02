@@ -5,6 +5,7 @@ import asyncio
 import re
 import unicodedata
 import io
+import json
 import tempfile
 import shutil
 
@@ -327,15 +328,6 @@ def init_db():
         id INTEGER PRIMARY KEY CHECK (id = 1),
         title TEXT NOT NULL,
         content TEXT NOT NULL DEFAULT '',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS casco_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        date_from TEXT NOT NULL,
-        date_to TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     );
@@ -1433,95 +1425,6 @@ def save_tutorial():
     return redirect(
         url_for("tutorial")
     )
-
-
-# =========================================================
-# CASCO TERVEZŐ
-# =========================================================
-
-@app.route("/casco")
-def casco():
-    if not require_admin():
-        return redirect(url_for("login"))
-
-    items = db().execute("""
-        SELECT
-            id,
-            name,
-            date_from,
-            date_to,
-            created_at,
-            updated_at
-        FROM casco_items
-        ORDER BY id DESC
-    """).fetchall()
-
-    return render_template(
-        "casco.html",
-        casco_items=items,
-        logged_in=True
-    )
-
-
-@app.route("/casco/save", methods=["POST"])
-def save_casco():
-    if not require_admin():
-        return redirect(url_for("login"))
-
-    item_id = request.form.get("id", "").strip()
-    name = request.form.get("name", "").strip()
-    date_from = request.form.get("date_from", "").strip()
-    date_to = request.form.get("date_to", "").strip()
-
-    if not name or not date_from or not date_to:
-        return redirect(url_for("casco"))
-
-    if date_from > date_to:
-        return redirect(url_for("casco"))
-
-    now = datetime.now().isoformat(timespec="seconds")
-    conn = db()
-
-    if item_id:
-        conn.execute("""
-            UPDATE casco_items
-            SET
-                name = ?,
-                date_from = ?,
-                date_to = ?,
-                updated_at = ?
-            WHERE id = ?
-        """, (name, date_from, date_to, now, int(item_id)))
-    else:
-        conn.execute("""
-            INSERT INTO casco_items
-            (
-                name,
-                date_from,
-                date_to,
-                created_at,
-                updated_at
-            )
-            VALUES (?, ?, ?, ?, ?)
-        """, (name, date_from, date_to, now, now))
-
-    conn.commit()
-    return redirect(url_for("casco"))
-
-
-@app.route("/casco/<int:item_id>/delete", methods=["POST"])
-def delete_casco(item_id):
-    if not require_admin():
-        return redirect(url_for("login"))
-
-    conn = db()
-    conn.execute(
-        "DELETE FROM casco_items WHERE id = ?",
-        (item_id,)
-    )
-    conn.commit()
-
-    return redirect(url_for("casco"))
 
 
 # =========================================================
@@ -4072,6 +3975,206 @@ def start_discord_bot():
 
     discord_thread.start()
 
+
+
+# =========================================================
+# CASCO TERVEZŐ - HOZZÁADÁS
+# =========================================================
+
+def ensure_casco_table():
+
+    conn = get_connection()
+
+    try:
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS casco_sheets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                items_json TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+
+        conn.close()
+
+
+@app.route("/casco")
+def casco():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    rows = db().execute("""
+        SELECT
+            id,
+            items_json,
+            created_at,
+            updated_at
+        FROM casco_sheets
+        ORDER BY id DESC
+    """).fetchall()
+
+    casco_items = []
+
+    for row in rows:
+
+        try:
+            items = json.loads(row["items_json"] or "[]")
+        except Exception:
+            items = []
+
+        if not isinstance(items, list):
+            items = []
+
+        clean_items = []
+
+        for item in items:
+
+            if not isinstance(item, dict):
+                continue
+
+            clean_items.append({
+                "name": str(item.get("name") or "").strip(),
+                "date_from": str(item.get("date_from") or ""),
+                "date_to": str(item.get("date_to") or "")
+            })
+
+        casco_items.append({
+            "id": row["id"],
+            "items": clean_items,
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"]
+        })
+
+    return render_template(
+        "casco.html",
+        casco_items=casco_items,
+        logged_in=True
+    )
+
+
+@app.route("/casco/save", methods=["POST"])
+def save_casco():
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    raw_items = request.form.get("items_json", "[]")
+
+    try:
+        items = json.loads(raw_items)
+    except Exception:
+        items = []
+
+    if not isinstance(items, list):
+        items = []
+
+    clean_items = []
+
+    for item in items:
+
+        if not isinstance(item, dict):
+            continue
+
+        name = str(item.get("name") or "").strip()
+        date_from = str(item.get("date_from") or "").strip()
+        date_to = str(item.get("date_to") or "").strip()
+
+        if not name:
+            continue
+
+        clean_items.append({
+            "name": name[:80],
+            "date_from": date_from[:10],
+            "date_to": date_to[:10]
+        })
+
+    if not clean_items:
+
+        return redirect(
+            url_for("casco")
+        )
+
+    now = datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+    conn = db()
+
+    sheet_id = request.form.get("id", "").strip()
+
+    if sheet_id:
+
+        conn.execute("""
+            UPDATE casco_sheets
+            SET
+                items_json = ?,
+                updated_at = ?
+            WHERE id = ?
+        """, (
+            json.dumps(clean_items, ensure_ascii=False),
+            now,
+            int(sheet_id)
+        ))
+
+    else:
+
+        conn.execute("""
+            INSERT INTO casco_sheets
+            (
+                items_json,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?)
+        """, (
+            json.dumps(clean_items, ensure_ascii=False),
+            now,
+            now
+        ))
+
+    conn.commit()
+
+    return redirect(
+        url_for("casco")
+    )
+
+
+@app.route("/casco/<int:sheet_id>/delete", methods=["POST"])
+def delete_casco(sheet_id):
+
+    if not require_login():
+
+        return redirect(
+            url_for("login")
+        )
+
+    conn = db()
+
+    conn.execute(
+        "DELETE FROM casco_sheets WHERE id = ?",
+        (sheet_id,)
+    )
+
+    conn.commit()
+
+    return redirect(
+        url_for("casco")
+    )
+
+
+ensure_casco_table()
 
 # =========================================================
 # ALKALMAZÁS INDÍTÁS ELŐTT
