@@ -318,9 +318,13 @@ function drawCasco(items){
 
         ctx.font = '900 61px Arial, sans-serif';
         ctx.fillStyle = GOLD2;
-        ctx.shadowColor = 'rgba(231,191,80,.38)';
-        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(247,217,120,.95)';
+        ctx.shadowBlur = 18;
         ctx.fillText('PRO GEAR GARAGE',512,165);
+        ctx.shadowColor = 'rgba(210,169,47,.70)';
+        ctx.shadowBlur = 32;
+        ctx.fillText('PRO GEAR GARAGE',512,165);
+        ctx.shadowBlur = 0;
         ctx.shadowBlur = 0;
 
         // =====================================================
@@ -379,8 +383,11 @@ function drawCasco(items){
 
         ctx.font = '900 57px Arial, sans-serif';
         ctx.fillStyle = GOLD2;
-        ctx.shadowColor = 'rgba(231,191,80,.25)';
-        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(247,217,120,.95)';
+        ctx.shadowBlur = 16;
+        ctx.fillText('CASCO LISTA',512,300);
+        ctx.shadowColor = 'rgba(210,169,47,.65)';
+        ctx.shadowBlur = 28;
         ctx.fillText('CASCO LISTA',512,300);
         ctx.shadowBlur = 0;
 
@@ -417,8 +424,11 @@ function drawCasco(items){
         ctx.textBaseline = 'alphabetic';
 
         ctx.font = '900 26px Arial, sans-serif';
-        ctx.fillStyle = GOLD;
+        ctx.fillStyle = GOLD2;
+        ctx.shadowColor = 'rgba(247,217,120,.90)';
+        ctx.shadowBlur = 10;
         ctx.fillText('NÉV',112,394);
+        ctx.shadowBlur = 0;
 
         // =====================================================
         // SZEMÉLYLISTA
@@ -453,19 +463,25 @@ function drawCasco(items){
             // név
             ctx.font = `900 ${nameSize}px Arial, sans-serif`;
             ctx.fillStyle = GOLD2;
-            ctx.shadowColor = 'rgba(231,191,80,.16)';
-            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'rgba(247,217,120,.85)';
+            ctx.shadowBlur = 10;
+            ctx.fillText(String(person.name),205,y);
+            ctx.shadowColor = 'rgba(210,169,47,.55)';
+            ctx.shadowBlur = 20;
             ctx.fillText(String(person.name),205,y);
             ctx.shadowBlur = 0;
 
             // dátum – nagyobb, de nem túl nagy
             ctx.font = '700 27px Arial, sans-serif';
-            ctx.fillStyle = GOLD;
+            ctx.fillStyle = GOLD2;
+            ctx.shadowColor = 'rgba(247,217,120,.72)';
+            ctx.shadowBlur = 8;
             ctx.fillText(
                 `${formatDate(person.date_from)} - ${formatDate(person.date_to)}`,
                 205,
                 y+39
             );
+            ctx.shadowBlur = 0;
 
             // sor alatti vékony vonal
             if(i < visible.length-1){
@@ -504,8 +520,11 @@ function drawCasco(items){
         ctx.textAlign='center';
         ctx.font='900 25px Arial, sans-serif';
         ctx.fillStyle=GOLD2;
-        ctx.shadowColor='rgba(231,191,80,.25)';
-        ctx.shadowBlur=6;
+        ctx.shadowColor='rgba(247,217,120,.95)';
+        ctx.shadowBlur=14;
+        ctx.fillText('ÉRVÉNYES CASCO',512,864);
+        ctx.shadowColor='rgba(210,169,47,.65)';
+        ctx.shadowBlur=26;
         ctx.fillText('ÉRVÉNYES CASCO',512,864);
         ctx.shadowBlur=0;
 
@@ -533,8 +552,11 @@ function drawCasco(items){
         // =====================================================
 
         ctx.font='700 21px Arial, sans-serif';
-        ctx.fillStyle=GOLD;
+        ctx.fillStyle=GOLD2;
+        ctx.shadowColor='rgba(247,217,120,.75)';
+        ctx.shadowBlur=9;
         ctx.fillText('PRO GEAR GARAGE',512,951);
+        ctx.shadowBlur=0;
 
         ctx.restore();
 
