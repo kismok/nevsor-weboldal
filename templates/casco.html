@@ -237,153 +237,350 @@ function drawCasco(items){
 
         ctx.save();
         ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = '#080808';
+
+        const GOLD = '#d4af37';
+        const GOLD2 = '#f1cf63';
+        const DARK = '#050505';
+
+        // =====================================================
+        // FEKETE ALAP
+        // =====================================================
+
+        ctx.fillStyle = DARK;
         ctx.fillRect(0, 0, W, H);
 
-        // Külső keretek
-        ctx.strokeStyle = '#6e5015';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(24, 24, 976, 976);
-        ctx.strokeStyle = '#c49b3c';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(42, 42, 940, 940);
+        // =====================================================
+        // KEREKÍTETT KÜLSŐ KERETEK
+        // =====================================================
 
-        // Fejléc
-        ctx.fillStyle = '#0b0b0b';
-        ctx.fillRect(66, 62, 892, 205);
-        ctx.strokeStyle = '#b78b2d';
+        function roundedStroke(x, y, w, h, r, color, width) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.stroke();
+        }
+
+        roundedStroke(20, 20, 984, 984, 28, '#9b781e', 3);
+        roundedStroke(34, 34, 956, 956, 22, GOLD, 2);
+        roundedStroke(50, 50, 924, 924, 16, '#7d5d17', 2);
+
+        // Sarok díszek
+        ctx.strokeStyle = GOLD;
         ctx.lineWidth = 2;
-        ctx.strokeRect(66, 62, 892, 205);
+
+        function cornerMark(x, y, sx, sy) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + sy * 30);
+            ctx.lineTo(x + sx * 30, y + sy * 30);
+            ctx.lineTo(x + sx * 48, y + sy * 12);
+            ctx.stroke();
+        }
+
+        cornerMark(58, 58, 1, 1);
+        cornerMark(966, 58, -1, 1);
+        cornerMark(58, 966, 1, -1);
+        cornerMark(966, 966, -1, -1);
+
+        // =====================================================
+        // FELSŐ AUTÓ SZILUETT
+        // =====================================================
+
+        function drawCarSilhouette(cx, cy, scale) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.scale(scale, scale);
+
+            ctx.strokeStyle = GOLD2;
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(-190, 28);
+            ctx.bezierCurveTo(-168, 0, -128, -6, -96, -10);
+            ctx.bezierCurveTo(-58, -15, -36, -50, 2, -58);
+            ctx.bezierCurveTo(42, -67, 91, -51, 116, -28);
+            ctx.bezierCurveTo(137, -9, 162, -4, 192, 3);
+            ctx.bezierCurveTo(211, 8, 224, 21, 232, 29);
+            ctx.bezierCurveTo(194, 29, 157, 29, 120, 29);
+            ctx.bezierCurveTo(69, 29, 18, 29, -30, 29);
+            ctx.bezierCurveTo(-82, 29, -137, 30, -190, 28);
+            ctx.stroke();
+
+            // Tető/ablak
+            ctx.beginPath();
+            ctx.moveTo(-82, -10);
+            ctx.bezierCurveTo(-45, -21, -29, -49, 2, -55);
+            ctx.bezierCurveTo(38, -61, 78, -48, 106, -27);
+            ctx.lineTo(57, -25);
+            ctx.lineTo(-30, -25);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Kerékívek
+            ctx.beginPath();
+            ctx.arc(-112, 31, 27, Math.PI, Math.PI * 2);
+            ctx.arc(137, 31, 27, Math.PI, Math.PI * 2);
+            ctx.stroke();
+
+            // Alsó díszvonal
+            ctx.beginPath();
+            ctx.moveTo(-156, 43);
+            ctx.lineTo(178, 43);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        drawCarSilhouette(512, 112, 1.05);
+
+        // =====================================================
+        // PRO GEAR GARAGE
+        // =====================================================
 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '900 66px Arial, sans-serif';
-        ctx.fillStyle = '#f5d77d';
-        ctx.shadowColor = 'rgba(245,215,125,.55)';
-        ctx.shadowBlur = 18;
-        ctx.fillText('PRO GEAR GARAGE', 512, 132);
+
+        ctx.font = '900 62px Arial, sans-serif';
+        ctx.fillStyle = GOLD2;
+        ctx.shadowColor = 'rgba(241,207,99,.45)';
+        ctx.shadowBlur = 15;
+        ctx.fillText('PRO GEAR GARAGE', 512, 184);
         ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = '#d1aa4c';
+        // Vonal a név alatt
+        ctx.strokeStyle = GOLD;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(240, 175);
-        ctx.lineTo(784, 175);
+        ctx.moveTo(250, 226);
+        ctx.lineTo(774, 226);
         ctx.stroke();
 
-        // Felső arany ikonok
-        drawShieldIcon(150, 188, 0.52);
-        drawCarIcon(512, 190, 0.42);
-        drawWrenchIcon(874, 188, 0.52);
+        // =====================================================
+        // KÖZÉPSŐ PAJZS + CSILLAGOK
+        // =====================================================
 
-        ctx.strokeStyle = '#d1aa4c';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = GOLD2;
+        ctx.lineWidth = 3;
+
         ctx.beginPath();
-        ctx.moveTo(245, 177);
-        ctx.lineTo(420, 177);
-        ctx.moveTo(604, 177);
-        ctx.lineTo(779, 177);
+        ctx.moveTo(430, 236);
+        ctx.lineTo(512, 254);
+        ctx.lineTo(594, 236);
         ctx.stroke();
 
+        ctx.fillStyle = GOLD2;
+
+        function star(cx, cy, outer, inner) {
+            let a = -Math.PI / 2;
+            ctx.beginPath();
+
+            for (let i = 0; i < 10; i++) {
+                const r = i % 2 === 0 ? outer : inner;
+                const x = cx + Math.cos(a) * r;
+                const y = cy + Math.sin(a) * r;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+
+                a += Math.PI / 5;
+            }
+
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        [-62, -31, 0, 31, 62].forEach((x, i) => {
+            star(512 + x, 249, i === 2 ? 14 : 10, i === 2 ? 6 : 4);
+        });
+
+        // =====================================================
         // CASCO LISTA
-        // Nincs külön háttér / badge, közvetlenül a fekete alapra kerül.
-        ctx.fillStyle = '#f5d77d';
+        // =====================================================
+
         ctx.font = '900 54px Arial, sans-serif';
-        ctx.shadowColor = 'rgba(245,215,125,.35)';
+        ctx.fillStyle = GOLD2;
+        ctx.shadowColor = 'rgba(241,207,99,.32)';
         ctx.shadowBlur = 10;
-        ctx.fillText('CASCO LISTA', 512, 222);
+        ctx.fillText('CASCO LISTA', 512, 324);
         ctx.shadowBlur = 0;
 
-        // Lista mező
-        ctx.fillStyle = '#0b0b0b';
-        ctx.fillRect(66, 310, 892, 545);
-        ctx.strokeStyle = '#80611e';
+        // Oldalsó díszek
+        ctx.strokeStyle = GOLD;
         ctx.lineWidth = 2;
-        ctx.strokeRect(66, 310, 892, 545);
+
+        ctx.beginPath();
+        ctx.moveTo(130, 324);
+        ctx.lineTo(225, 324);
+        ctx.lineTo(247, 344);
+
+        ctx.moveTo(894, 324);
+        ctx.lineTo(799, 324);
+        ctx.lineTo(777, 344);
+        ctx.stroke();
+
+        // Elválasztó
+        ctx.beginPath();
+        ctx.moveTo(110, 378);
+        ctx.lineTo(914, 378);
+        ctx.stroke();
+
+        // =====================================================
+        // LISTA
+        // =====================================================
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        ctx.font = '700 26px Arial, sans-serif';
-        ctx.fillStyle = '#c09a42';
-        ctx.fillText('NÉV', 110, 365);
 
-        const list = (items || []).filter(x => x && String(x.name || '').trim());
+        ctx.font = '900 25px Arial, sans-serif';
+        ctx.fillStyle = GOLD;
+        ctx.fillText('NÉV', 110, 421);
+
+        const list = (items || [])
+            .filter(x => x && String(x.name || '').trim());
+
         const count = list.length;
         const visible = list.slice(0, 7);
-        const top = 415;
-        const bottom = 770;
-        const gap = visible.length > 1 ? Math.min(92, (bottom - top) / (visible.length - 1)) : 0;
-        const size = visible.length <= 2 ? 48 : visible.length <= 4 ? 38 : visible.length <= 6 ? 31 : 26;
+
+        // A képen láthatóhoz hasonló tömör, elegáns lista.
+        const top = 474;
+        const bottom = 805;
+
+        let gap = 0;
+        if (visible.length > 1) {
+            gap = Math.min(112, (bottom - top) / (visible.length - 1));
+        }
+
+        let nameSize = 39;
+        if (visible.length >= 5) nameSize = 34;
+        if (visible.length >= 7) nameSize = 30;
 
         visible.forEach((person, i) => {
             const y = top + i * gap;
-            ctx.font = `900 ${size}px Arial, sans-serif`;
-            ctx.fillStyle = '#f5d77d';
-            ctx.shadowColor = 'rgba(245,215,125,.35)';
-            ctx.shadowBlur = 8;
-            ctx.fillText(String(person.name), 110, y);
+
+            // Sorszám
+            ctx.font = '900 34px Arial, sans-serif';
+            ctx.fillStyle = GOLD2;
+            ctx.fillText(`${i + 1}.`, 92, y);
+
+            // Név
+            ctx.font = `900 ${nameSize}px Arial, sans-serif`;
+            ctx.fillStyle = GOLD2;
+            ctx.shadowColor = 'rgba(241,207,99,.18)';
+            ctx.shadowBlur = 5;
+            ctx.fillText(String(person.name), 205, y);
             ctx.shadowBlur = 0;
 
-            ctx.font = '700 30px Arial, sans-serif';
-            ctx.fillStyle = '#f0cc62';
-            ctx.fillText(`${formatDate(person.date_from)}  –  ${formatDate(person.date_to)}`, 110, y + 30);
+            // Dátum
+            ctx.font = '700 27px Arial, sans-serif';
+            ctx.fillStyle = GOLD;
+            ctx.fillText(
+                `${formatDate(person.date_from)} - ${formatDate(person.date_to)}`,
+                205,
+                y + 39
+            );
 
+            // Vonal
             if (i < visible.length - 1) {
-                ctx.strokeStyle = '#7e5e1c';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#765717';
+                ctx.lineWidth = 1.5;
+
                 ctx.beginPath();
-                ctx.moveTo(110, y + 52);
-                ctx.lineTo(914, y + 52);
+                ctx.moveTo(92, y + 70);
+                ctx.lineTo(932, y + 70);
                 ctx.stroke();
             }
         });
 
         if (count === 0) {
             ctx.textAlign = 'center';
-            ctx.font = '700 30px Arial, sans-serif';
-            ctx.fillStyle = '#f0cc62';
-            ctx.fillText('Név hozzáadása után itt jelenik meg az előnézet', 512, 500);
+            ctx.font = '700 28px Arial, sans-serif';
+            ctx.fillStyle = GOLD;
+            ctx.fillText(
+                'Név hozzáadása után itt jelenik meg az előnézet',
+                512,
+                535
+            );
         } else if (count > 7) {
             ctx.textAlign = 'center';
             ctx.font = '700 20px Arial, sans-serif';
-            ctx.fillStyle = '#e0bd55';
-            ctx.fillText(`+ ${count - 7} további név`, 512, 820);
+            ctx.fillStyle = GOLD;
+            ctx.fillText(
+                `+ ${count - 7} további név`,
+                512,
+                820
+            );
         }
 
-        // Alsó státusz – közvetlenül az alsó vonal fölött
+        // =====================================================
+        // ÉRVÉNYES CASCO
+        // A legalsó vonal FÖLÖTT, ahogy kérted.
+        // =====================================================
+
         ctx.textAlign = 'center';
-        ctx.font = '900 24px Arial, sans-serif';
-        ctx.fillStyle = '#f5d77d';
-        ctx.shadowColor = 'rgba(245,215,125,.30)';
+        ctx.font = '900 25px Arial, sans-serif';
+        ctx.fillStyle = GOLD2;
+        ctx.shadowColor = 'rgba(241,207,99,.28)';
         ctx.shadowBlur = 7;
-        ctx.fillText('ÉRVÉNYES CASCO', 512, 875);
+        ctx.fillText('ÉRVÉNYES CASCO', 512, 866);
         ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = '#d1aa4c';
+        // =====================================================
+        // ALSÓ VONAL
+        // =====================================================
+
+        ctx.strokeStyle = GOLD;
         ctx.lineWidth = 2;
+
         ctx.beginPath();
-        ctx.moveTo(150, 910);
-        ctx.lineTo(874, 910);
+        ctx.moveTo(150, 902);
+        ctx.lineTo(874, 902);
         ctx.stroke();
-        ctx.font = '700 22px Arial, sans-serif';
-        ctx.fillStyle = '#8d6b24';
-        ctx.fillText('PRO GEAR GARAGE', 512, 952);
+
+        // Középső kis pajzs/chevron dísz
+        ctx.beginPath();
+        ctx.moveTo(490, 902);
+        ctx.lineTo(512, 920);
+        ctx.lineTo(534, 902);
+        ctx.stroke();
+
+        // =====================================================
+        // ALSÓ PRO GEAR GARAGE
+        // =====================================================
+
+        ctx.font = '700 21px Arial, sans-serif';
+        ctx.fillStyle = GOLD;
+        ctx.fillText('PRO GEAR GARAGE', 512, 951);
 
         ctx.restore();
+
     } catch (error) {
         console.error('CASCO előnézet hiba:', error);
+
         try {
             ctx.restore();
         } catch (_) {}
+
         ctx.clearRect(0, 0, 1024, 1024);
-        ctx.fillStyle = '#080808';
+        ctx.fillStyle = '#050505';
         ctx.fillRect(0, 0, 1024, 1024);
-        ctx.fillStyle = '#f5d77d';
+
         ctx.textAlign = 'center';
-        ctx.font = '900 42px Arial, sans-serif';
-        ctx.fillText('PRO GEAR GARAGE', 512, 450);
-        ctx.font = '700 28px Arial, sans-serif';
-        ctx.fillText('CASCO LISTA', 512, 510);
+        ctx.fillStyle = '#f1cf63';
+        ctx.font = '900 48px Arial, sans-serif';
+        ctx.fillText('PRO GEAR GARAGE', 512, 480);
+
+        ctx.font = '900 32px Arial, sans-serif';
+        ctx.fillText('CASCO LISTA', 512, 535);
     }
 }
 
