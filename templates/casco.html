@@ -180,14 +180,14 @@ function drawCasco(items){
         ctx.lineTo(784, 175);
         ctx.stroke();
 
-        // CASCO LISTA badge
-        ctx.fillStyle = '#d6b457';
-        ctx.fillRect(207, 177, 610, 90);
-        ctx.fillStyle = '#fff0aa';
-        ctx.fillRect(214, 184, 596, 76);
-        ctx.fillStyle = '#0a0a0a';
-        ctx.font = '900 44px Arial, sans-serif';
+        // CASCO LISTA
+        // Nincs külön háttér / badge, közvetlenül a fekete alapra kerül.
+        ctx.fillStyle = '#f5d77d';
+        ctx.font = '900 54px Arial, sans-serif';
+        ctx.shadowColor = 'rgba(245,215,125,.35)';
+        ctx.shadowBlur = 10;
         ctx.fillText('CASCO LISTA', 512, 222);
+        ctx.shadowBlur = 0;
 
         // Lista mező
         ctx.fillStyle = '#0b0b0b';
@@ -219,8 +219,8 @@ function drawCasco(items){
             ctx.fillText(String(person.name), 110, y);
             ctx.shadowBlur = 0;
 
-            ctx.font = '700 28px Arial, sans-serif';
-            ctx.fillStyle = '#8f7130';
+            ctx.font = '700 30px Arial, sans-serif';
+            ctx.fillStyle = '#f0cc62';
             ctx.fillText(`${formatDate(person.date_from)}  –  ${formatDate(person.date_to)}`, 110, y + 30);
 
             if (i < visible.length - 1) {
@@ -236,20 +236,16 @@ function drawCasco(items){
         if (count === 0) {
             ctx.textAlign = 'center';
             ctx.font = '700 30px Arial, sans-serif';
-            ctx.fillStyle = '#8f7130';
+            ctx.fillStyle = '#f0cc62';
             ctx.fillText('Név hozzáadása után itt jelenik meg az előnézet', 512, 500);
         } else if (count > 7) {
             ctx.textAlign = 'center';
             ctx.font = '700 20px Arial, sans-serif';
-            ctx.fillStyle = '#b8923d';
+            ctx.fillStyle = '#e0bd55';
             ctx.fillText(`+ ${count - 7} további név`, 512, 820);
         }
 
         // Alsó státusz
-        ctx.fillStyle = 'rgba(185,145,52,.10)';
-        ctx.fillRect(110, 835, 804, 52);
-        ctx.strokeStyle = 'rgba(185,145,52,.55)';
-        ctx.strokeRect(110, 835, 804, 52);
         ctx.textAlign = 'center';
         ctx.font = '900 24px Arial, sans-serif';
         ctx.fillStyle = '#f5d77d';
