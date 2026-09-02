@@ -124,11 +124,11 @@ function addPerson(person={}){
     <div><label>Meddig</label><input class="person-to" type="date" value="${esc(person.date_to||'')}"></div>
     <button type="button" class="secondary casco-person-remove" onclick="this.parentElement.remove(); updatePreview();">🗑️</button>`;
     peopleEl.appendChild(row);
-    row.querySelectorAll('input').forEach(i=>i.addEventListener('input',updatePreview));
+    row.querySelectorAll('input').forEach(i=>{ i.addEventListener('input',updatePreview); i.addEventListener('change',updatePreview); });
     updatePreview();
 }
 function newCasco(){ document.getElementById('cascoId').value='';document.getElementById('cascoFormTitle').textContent='➕ Új Casco lap';peopleEl.innerHTML='';addPerson(); }
-function editCasco(id,items){ document.getElementById('cascoId').value=id;document.getElementById('cascoFormTitle').textContent='✎ Casco lap szerkesztése';peopleEl.innerHTML='';(items||[]).forEach(addPerson);if(!(items||[]).length)addPerson();updatePreview();window.scrollTo({top:0,behavior:'smooth'}); }
+function editCasco(id,items){ document.getElementById('cascoId').value=id;document.getElementById('cascoFormTitle').textContent='✎ Casco lap szerkesztése';peopleEl.innerHTML='';(items||[]).forEach(addPerson);if(!(items||[]).length)addPerson();requestAnimationFrame(()=>updatePreview());window.scrollTo({top:0,behavior:'smooth'}); }
 function saveCasco(){ const items=getPeople(); if(!items.length){alert('Adj hozzá legalább egy nevet.');return;} const form=document.createElement('form');form.method='post';form.action='/casco/save';
     const id=document.createElement('input');id.type='hidden';id.name='id';id.value=document.getElementById('cascoId').value;form.appendChild(id);
     const data=document.createElement('input');data.type='hidden';data.name='items_json';data.value=JSON.stringify(items);form.appendChild(data);document.body.appendChild(form);form.submit(); }
@@ -136,34 +136,163 @@ function generateSavedCasco(items){ drawCasco(items||[]); downloadCanvas((items&
 function downloadCurrentCasco(){ const items=getPeople();drawCasco(items);downloadCanvas((items[0]&&items[0].name)||'casco'); }
 function downloadCanvas(name){ const safe=String(name).replace(/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ _-]/g,'').replace(/\s+/g,'_').slice(0,60)||'casco';const a=document.createElement('a');a.download='casco_'+safe+'.png';a.href=canvas.toDataURL('image/png');a.click(); }
 
-function drawCasco(items){
-    const W=1024,H=1024;ctx.clearRect(0,0,W,H);ctx.fillStyle='#080808';ctx.fillRect(0,0,W,H);
-    for(let i=0;i<900;i++){const x=(i*83)%W,y=(i*137)%H,a=.012+((i*17)%24)/1000;ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillRect(x,y,1,1);}
-    ctx.strokeStyle='#3d2b0d';ctx.lineWidth=3;ctx.strokeRect(24,24,976,976);ctx.strokeStyle='#80611e';ctx.lineWidth=2;ctx.strokeRect(42,42,940,940);
-    roundedRect(66,62,892,205,24);ctx.fillStyle='#080808';ctx.fill();ctx.strokeStyle='#7e5e1c';ctx.lineWidth=2;ctx.stroke();
-    ctx.textAlign='center';ctx.font='900 66px Arial';ctx.fillStyle='#f5d77d';ctx.shadowColor='rgba(245,215,125,.55)';ctx.shadowBlur=18;ctx.fillText('PRO GEAR GARAGE',512,140);ctx.shadowBlur=0;
-    goldLine(240,175,784,175,2);
-    // A CASCO LISTA fixen, pontosan középre kerül a PRO GEAR GARAGE alatt.
-    ctx.save();ctx.translate(512,222);
-    const badge=ctx.createLinearGradient(-305,0,305,0);badge.addColorStop(0,'#9a741f');badge.addColorStop(.18,'#f8dc7c');badge.addColorStop(.5,'#fff1ad');badge.addColorStop(.82,'#e8c45b');badge.addColorStop(1,'#806018');
-    roundedRect(-305,-45,610,90,12);ctx.fillStyle=badge;ctx.shadowColor='rgba(255,220,100,.55)';ctx.shadowBlur=20;ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#0a0a0a';ctx.font='900 44px Arial';ctx.textAlign='center';ctx.fillText('CASCO LISTA',0,15);ctx.restore();
+function updatePreview(){ drawCasco(getPeople()); }
 
-    roundedRect(66,310,892,545,20);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fill();ctx.strokeStyle='#5f4615';ctx.lineWidth=2;ctx.stroke();
-    const list=(items||[]).filter(x=>x&&x.name);const count=list.length;
-    ctx.textAlign='left';ctx.font='700 26px Arial';ctx.fillStyle='#b8923d';ctx.fillText('NÉV',110,365);
-    const top=415, bottom=790, gap=count>1?Math.min(92,(bottom-top)/(count)):150;
-    const maxNameSize=count<=2?48:count<=4?38:count<=6?31:26;
-    list.slice(0,7).forEach((p,i)=>{
-        const y=top+i*gap;ctx.font=`900 ${maxNameSize}px Arial`;ctx.fillStyle='#f5d77d';ctx.shadowColor='rgba(245,215,125,.35)';ctx.shadowBlur=8;ctx.fillText(p.name,110,y);ctx.shadowBlur=0;
-        ctx.font='700 19px Arial';ctx.fillStyle='#8f7130';ctx.fillText(`${formatDate(p.date_from)}  –  ${formatDate(p.date_to)}`,110,y+30);
-        if(i<Math.min(list.length,7)-1)goldLine(110,y+52,914,y+52,1);
-    });
-    if(count>7){ctx.textAlign='center';ctx.font='700 20px Arial';ctx.fillStyle='#b8923d';ctx.fillText(`+ ${count-7} további név`,512,820);}
-    roundedRect(110,835,804,52,10);ctx.fillStyle='rgba(185,145,52,.10)';ctx.fill();ctx.strokeStyle='rgba(185,145,52,.55)';ctx.stroke();ctx.textAlign='center';ctx.font='900 24px Arial';ctx.fillStyle='#f5d77d';ctx.fillText('ÉRVÉNYES CASCO',512,869);
-    goldLine(150,910,874,910,2);ctx.font='700 22px Arial';ctx.fillStyle='#8d6b24';ctx.fillText('PRO GEAR GARAGE',512,952);ctx.textAlign='left';
+function drawCasco(items){
+    try {
+        const W = 1024, H = 1024;
+        canvas.width = W;
+        canvas.height = H;
+
+        ctx.save();
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#080808';
+        ctx.fillRect(0, 0, W, H);
+
+        // Külső keretek
+        ctx.strokeStyle = '#6e5015';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(24, 24, 976, 976);
+        ctx.strokeStyle = '#c49b3c';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(42, 42, 940, 940);
+
+        // Fejléc
+        ctx.fillStyle = '#0b0b0b';
+        ctx.fillRect(66, 62, 892, 205);
+        ctx.strokeStyle = '#b78b2d';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(66, 62, 892, 205);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '900 66px Arial, sans-serif';
+        ctx.fillStyle = '#f5d77d';
+        ctx.shadowColor = 'rgba(245,215,125,.55)';
+        ctx.shadowBlur = 18;
+        ctx.fillText('PRO GEAR GARAGE', 512, 132);
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = '#d1aa4c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(240, 175);
+        ctx.lineTo(784, 175);
+        ctx.stroke();
+
+        // CASCO LISTA badge
+        ctx.fillStyle = '#d6b457';
+        ctx.fillRect(207, 177, 610, 90);
+        ctx.fillStyle = '#fff0aa';
+        ctx.fillRect(214, 184, 596, 76);
+        ctx.fillStyle = '#0a0a0a';
+        ctx.font = '900 44px Arial, sans-serif';
+        ctx.fillText('CASCO LISTA', 512, 222);
+
+        // Lista mező
+        ctx.fillStyle = '#0b0b0b';
+        ctx.fillRect(66, 310, 892, 545);
+        ctx.strokeStyle = '#80611e';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(66, 310, 892, 545);
+
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = '700 26px Arial, sans-serif';
+        ctx.fillStyle = '#c09a42';
+        ctx.fillText('NÉV', 110, 365);
+
+        const list = (items || []).filter(x => x && String(x.name || '').trim());
+        const count = list.length;
+        const visible = list.slice(0, 7);
+        const top = 415;
+        const bottom = 770;
+        const gap = visible.length > 1 ? Math.min(92, (bottom - top) / (visible.length - 1)) : 0;
+        const size = visible.length <= 2 ? 48 : visible.length <= 4 ? 38 : visible.length <= 6 ? 31 : 26;
+
+        visible.forEach((person, i) => {
+            const y = top + i * gap;
+            ctx.font = `900 ${size}px Arial, sans-serif`;
+            ctx.fillStyle = '#f5d77d';
+            ctx.shadowColor = 'rgba(245,215,125,.35)';
+            ctx.shadowBlur = 8;
+            ctx.fillText(String(person.name), 110, y);
+            ctx.shadowBlur = 0;
+
+            ctx.font = '700 19px Arial, sans-serif';
+            ctx.fillStyle = '#8f7130';
+            ctx.fillText(`${formatDate(person.date_from)}  –  ${formatDate(person.date_to)}`, 110, y + 30);
+
+            if (i < visible.length - 1) {
+                ctx.strokeStyle = '#7e5e1c';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(110, y + 52);
+                ctx.lineTo(914, y + 52);
+                ctx.stroke();
+            }
+        });
+
+        if (count === 0) {
+            ctx.textAlign = 'center';
+            ctx.font = '700 30px Arial, sans-serif';
+            ctx.fillStyle = '#8f7130';
+            ctx.fillText('Név hozzáadása után itt jelenik meg az előnézet', 512, 500);
+        } else if (count > 7) {
+            ctx.textAlign = 'center';
+            ctx.font = '700 20px Arial, sans-serif';
+            ctx.fillStyle = '#b8923d';
+            ctx.fillText(`+ ${count - 7} további név`, 512, 820);
+        }
+
+        // Alsó státusz
+        ctx.fillStyle = 'rgba(185,145,52,.10)';
+        ctx.fillRect(110, 835, 804, 52);
+        ctx.strokeStyle = 'rgba(185,145,52,.55)';
+        ctx.strokeRect(110, 835, 804, 52);
+        ctx.textAlign = 'center';
+        ctx.font = '900 24px Arial, sans-serif';
+        ctx.fillStyle = '#f5d77d';
+        ctx.fillText('ÉRVÉNYES CASCO', 512, 869);
+
+        ctx.strokeStyle = '#d1aa4c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(150, 910);
+        ctx.lineTo(874, 910);
+        ctx.stroke();
+        ctx.font = '700 22px Arial, sans-serif';
+        ctx.fillStyle = '#8d6b24';
+        ctx.fillText('PRO GEAR GARAGE', 512, 952);
+
+        ctx.restore();
+    } catch (error) {
+        console.error('CASCO előnézet hiba:', error);
+        try {
+            ctx.restore();
+        } catch (_) {}
+        ctx.clearRect(0, 0, 1024, 1024);
+        ctx.fillStyle = '#080808';
+        ctx.fillRect(0, 0, 1024, 1024);
+        ctx.fillStyle = '#f5d77d';
+        ctx.textAlign = 'center';
+        ctx.font = '900 42px Arial, sans-serif';
+        ctx.fillText('PRO GEAR GARAGE', 512, 450);
+        ctx.font = '700 28px Arial, sans-serif';
+        ctx.fillText('CASCO LISTA', 512, 510);
+    }
 }
 
-newCasco();
+function initCascoPreview(){
+    newCasco();
+    updatePreview();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCascoPreview);
+} else {
+    initCascoPreview();
+}
 </script>
 </body>
 </html>
