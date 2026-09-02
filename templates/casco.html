@@ -315,50 +315,163 @@ function drawCasco(items){
 
         function drawTopCar(){
             ctx.save();
-            ctx.translate(512,112);
-            ctx.scale(0.70,0.70);
+            ctx.translate(512,108);
 
-            ctx.strokeStyle = GOLD2;
-            ctx.lineWidth = 6;
+            // Prémium arany autó-embléma
+            const gold = GOLD2;
+
+            ctx.strokeStyle = gold;
+            ctx.fillStyle = 'rgba(231,191,80,.035)';
+            ctx.lineWidth = 5;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            // karosszéria
+            // -------------------------------------------------
+            // Elegáns kupé karosszéria
+            // -------------------------------------------------
+
             ctx.beginPath();
-            ctx.moveTo(-235,28);
-            ctx.bezierCurveTo(-215,8,-184,1,-145,0);
-            ctx.bezierCurveTo(-115,-2,-91,-38,-61,-53);
-            ctx.bezierCurveTo(-28,-70,19,-70,58,-57);
-            ctx.bezierCurveTo(91,-47,111,-22,138,-14);
-            ctx.bezierCurveTo(167,-6,205,0,225,17);
-            ctx.bezierCurveTo(235,25,242,31,248,36);
+            ctx.moveTo(-220,30);
+            ctx.bezierCurveTo(-204,12,-180,3,-147,1);
+            ctx.bezierCurveTo(-119,0,-99,-9,-81,-28);
+            ctx.bezierCurveTo(-58,-53,-28,-68,13,-70);
+            ctx.bezierCurveTo(53,-72,89,-60,115,-40);
+            ctx.bezierCurveTo(137,-23,151,-10,176,-5);
+            ctx.bezierCurveTo(201,0,220,9,235,28);
 
-            ctx.lineTo(180,36);
-            ctx.bezierCurveTo(176,12,156,0,134,0);
-            ctx.bezierCurveTo(109,0,91,13,86,36);
+            ctx.lineTo(181,30);
 
-            ctx.lineTo(-79,36);
-            ctx.bezierCurveTo(-85,13,-104,1,-127,2);
-            ctx.bezierCurveTo(-151,3,-169,16,-174,36);
+            // jobb kerékív
+            ctx.bezierCurveTo(176,5,154,-7,130,-7);
+            ctx.bezierCurveTo(104,-7,84,7,78,30);
 
-            ctx.lineTo(-235,28);
+            ctx.lineTo(-78,30);
+
+            // bal kerékív
+            ctx.bezierCurveTo(-84,7,-105,-7,-130,-7);
+            ctx.bezierCurveTo(-156,-7,-177,7,-183,30);
+
+            ctx.lineTo(-220,30);
+            ctx.closePath();
+
+            ctx.fill();
             ctx.stroke();
 
-            // tető / ablak
+            // -------------------------------------------------
+            // Tető / üvegfelület
+            // -------------------------------------------------
+
             ctx.beginPath();
-            ctx.moveTo(-100,-1);
-            ctx.bezierCurveTo(-70,-10,-54,-43,-25,-54);
-            ctx.bezierCurveTo(8,-66,46,-61,76,-44);
-            ctx.lineTo(111,-18);
-            ctx.lineTo(28,-19);
-            ctx.lineTo(-100,-1);
+            ctx.moveTo(-105,-1);
+            ctx.bezierCurveTo(-77,-11,-61,-43,-34,-56);
+            ctx.bezierCurveTo(-3,-71,39,-68,70,-53);
+            ctx.bezierCurveTo(89,-44,104,-30,121,-14);
+            ctx.lineTo(45,-17);
+            ctx.lineTo(-105,-1);
+            ctx.closePath();
             ctx.stroke();
 
-            // ablak elválasztás
+            // Szélvédő osztás
             ctx.beginPath();
-            ctx.moveTo(5,-57);
-            ctx.lineTo(29,-19);
+            ctx.moveTo(7,-65);
+            ctx.lineTo(45,-17);
             ctx.stroke();
+
+            // -------------------------------------------------
+            // Karosszéria díszvonal
+            // -------------------------------------------------
+
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(-174,10);
+            ctx.bezierCurveTo(-110,17,-36,17,36,16);
+            ctx.bezierCurveTo(101,15,154,13,205,23);
+            ctx.stroke();
+
+            // -------------------------------------------------
+            // Fényszórók
+            // -------------------------------------------------
+
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(-199,18);
+            ctx.lineTo(-166,12);
+            ctx.lineTo(-150,20);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(176,13);
+            ctx.lineTo(207,18);
+            ctx.lineTo(221,27);
+            ctx.stroke();
+
+            // -------------------------------------------------
+            // Kerekek – arany gyűrűkkel
+            // -------------------------------------------------
+
+            ctx.lineWidth = 4;
+
+            ctx.beginPath();
+            ctx.arc(-130,31,27,0,Math.PI*2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(130,31,27,0,Math.PI*2);
+            ctx.stroke();
+
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.arc(-130,31,12,0,Math.PI*2);
+            ctx.arc(130,31,12,0,Math.PI*2);
+            ctx.stroke();
+
+            // -------------------------------------------------
+            // Középső kis embléma
+            // -------------------------------------------------
+
+            ctx.fillStyle = gold;
+
+            ctx.beginPath();
+            ctx.moveTo(0,-4);
+            ctx.lineTo(9,12);
+            ctx.lineTo(0,20);
+            ctx.lineTo(-9,12);
+            ctx.closePath();
+            ctx.fill();
+
+            // -------------------------------------------------
+            // Felső fényív
+            // -------------------------------------------------
+
+            ctx.strokeStyle = 'rgba(243,211,106,.65)';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(-67,-59);
+            ctx.bezierCurveTo(-27,-83,40,-84,88,-54);
+            ctx.stroke();
+
+            // -------------------------------------------------
+            // Alsó hosszú embléma-vonal
+            // -------------------------------------------------
+
+            ctx.strokeStyle = GOLD;
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(-190,67);
+            ctx.lineTo(190,67);
+            ctx.stroke();
+
+            // két kis díszpont
+            ctx.fillStyle = GOLD2;
+            ctx.beginPath();
+            ctx.arc(-205,67,3,0,Math.PI*2);
+            ctx.arc(205,67,3,0,Math.PI*2);
+            ctx.fill();
 
             ctx.restore();
         }
