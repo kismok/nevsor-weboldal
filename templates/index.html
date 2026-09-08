@@ -148,6 +148,9 @@
             }
         }
 </style>
+<style>
+.hl-online{color:#35e37a;font-weight:800}.hl-offline{color:#888;font-weight:700}.hl-time{font-size:12px;color:#caa84a;margin-top:4px}.hl-server-box{margin:0 0 20px;padding:14px 18px;border:1px solid rgba(202,168,74,.35);border-radius:12px;background:rgba(0,0,0,.18)}
+</style>
 </head>
 
 
@@ -166,53 +169,36 @@
             ▣ <span>PRO GEAR GARAGE</span>
         </div>
 
+
         <nav>
 
             <a
-                class="{{ 'active' if not inactive_view else '' }}"
-                href="/"
+                class="active"
+                href="/?month={{ selected_month }}"
             >
                 ☷ Névsor
             </a>
 
-            <a
-                class=""
-                href="/penalty-log"
-            >
+
+            <a href="/penalty-log">
                 ⚠ Hibapont napló
             </a>
 
+
             <a
-                class=""
                 href="/cars"
             >
                 🚗 Kocsi lista
             </a>
 
-            <a
-                class=""
-                href="/tutorial"
-            >
-                🔧 Szerelési Tutorial
-            </a>
-            <a
-                class="{{ 'active' if inactive_view else '' }}"
-                href="/inactive"
-            >
-                ⛔ Inaktivitás
-            </a>
 
             {% if logged_in %}
 
-            <a
-                href="/?month={{ selected_month if selected_month is defined else '' }}#discord"
-            >
+            <a href="#discord">
                 ◉ Discord kapcsolatok
             </a>
 
-            
-            <a href="/casco">🛡️ Casco tervező</a>
-{% endif %}
+            {% endif %}
 
         </nav>
 
@@ -669,6 +655,13 @@
 
 
 
+            <div class="hl-server-box" id="hlServerBox">
+                <b>🎮 HL RPG</b>
+                <span id="hlServerState" style="margin-left:12px;">⏳ Lekérdezés...</span>
+                <span id="hlServerPlayers" style="margin-left:12px;color:#aaa;"></span>
+            </div>
+
+
             <!-- =====================================================
                  TAGOK TÁBLÁZATA
             ====================================================== -->
@@ -687,6 +680,8 @@
                                 <th>Név</th>
                                 <th>Karakter ID</th>
                                 <th>Discord</th>
+                                <th>HL RPG</th>
+                                <th>Játékidő</th>
                                 <th>Státusz</th>
                                 <th>Fizetés dátuma</th>
                                 <th>Hibapontok</th>
@@ -748,6 +743,21 @@
 
                                 </td>
 
+                                {% set hs = member_stats.get(m.id, {}) %}
+                                <td>
+                                    {% if hs.get("online") %}
+                                    <span class="hl-online">🟢 ONLINE</span>
+                                    {% else %}
+                                    <span class="hl-offline">⚫ OFFLINE</span>
+                                    {% endif %}
+                                    <div style="font-size:12px;color:#aaa;margin-top:3px;">{{ m.hl_name or m.name }}</div>
+                                </td>
+
+                                <td>
+                                    <div class="hl-time">Ma: <b>{{ hs.get("today_minutes", 0) }} perc</b></div>
+                                    <div class="hl-time">Hét: <b>{{ hs.get("month_minutes", 0) }} perc</b></div>
+                                    <div class="hl-time">Összes: <b>{{ hs.get("total_minutes", 0) }} perc</b></div>
+                                </td>
 
                                 <td>
 
@@ -1263,6 +1273,16 @@
                 required
             >
 
+            <label>
+                HL RPG név
+            </label>
+
+            <input
+                type="text"
+                name="hl_name"
+                placeholder="Ha üres, a Név lesz használva"
+            >
+
 
             <label>
                 Fizetési státusz
@@ -1374,6 +1394,16 @@
                 required
             >
 
+            <label>
+                HL RPG név
+            </label>
+
+            <input
+                id="editHlName"
+                name="hl_name"
+                placeholder="Ha üres, a Név lesz használva"
+            >
+
 
             <label>
                 Fizetési státusz
@@ -1409,41 +1439,6 @@
                 id="editPaymentDate"
                 name="payment_date"
             >
-
-
-            <div class="inactive-toggle-row">
-
-                <label
-                    class="switch-label"
-                    for="editIsActive"
-                >
-                    <span>
-                        Inaktív tag
-                    </span>
-
-                    <input
-                        type="hidden"
-                        id="editIsActiveValue"
-                        name="is_active"
-                        value="1"
-                    >
-
-                    <span class="switch">
-                        <input
-                            type="checkbox"
-                            id="editIsActive"
-                            value="1"
-                        >
-
-                        <span class="slider"></span>
-                    </span>
-                </label>
-
-                <small class="muted">
-                    Bekapcsolva a tag az Inaktivitás menüpontba kerül.
-                </small>
-
-            </div>
 
 
             <button
@@ -1862,6 +1857,13 @@ async function editMember(id) {
 
         document
             .getElementById(
+                "editHlName"
+            )
+            .value =
+            m.hl_name || m.name || "";
+
+        document
+            .getElementById(
                 "editPaymentStatus"
             )
             .value =
@@ -1875,32 +1877,6 @@ async function editMember(id) {
             )
             .value =
             m.payment_date || "";
-
-        const activeCheckbox =
-            document.getElementById(
-                "editIsActive"
-            );
-
-        if (activeCheckbox) {
-
-            activeCheckbox.checked =
-                Number(
-                    m.is_active
-                ) === 0;
-
-            const activeValue =
-                document.getElementById(
-                    "editIsActiveValue"
-                );
-
-            if (activeValue) {
-                activeValue.value =
-                    Number(m.is_active) === 0
-                        ? "0"
-                        : "1";
-            }
-
-        }
 
         document
             .getElementById(
@@ -2908,173 +2884,33 @@ document.addEventListener(
 );
 
 
+
+async function refreshHlActivity(){
+    try {
+        const r = await fetch('/hl/status', {cache:'no-store'});
+        const data = await r.json();
+        const state = document.getElementById('hlServerState');
+        const players = document.getElementById('hlServerPlayers');
+        if (data.runtime && data.runtime.last_success) {
+            state.textContent = '🟢 ONLINE / FIGYELÉS AKTÍV';
+            state.style.color = '#35e37a';
+            players.textContent = `${data.runtime.players || 0}/${data.runtime.max_players || 0} játékos · 5 mp`;
+        } else {
+            state.textContent = '🔴 HL lekérdezés sikertelen';
+            state.style.color = '#ff5b5b';
+            players.textContent = data.runtime?.last_error || '';
+        }
+    } catch(e) {
+        const state = document.getElementById('hlServerState');
+        if(state){ state.textContent='🔴 HL kapcsolat hiba'; state.style.color='#ff5b5b'; }
+    }
+}
+
+refreshHlActivity();
+setInterval(refreshHlActivity, 5000);
+
 </script>
 
 
 </body>
 </html>
-
-<style>
-.inactive-toggle-row {
-    margin: 18px 0 8px;
-    padding: 14px;
-    border: 1px solid #e6eaf0;
-    border-radius: 10px;
-    background: #fafafa;
-}
-.switch-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 700;
-}
-.switch {
-    position: relative;
-    width: 48px;
-    height: 26px;
-    flex-shrink: 0;
-}
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    margin: 0;
-}
-.slider {
-    position: absolute;
-    inset: 0;
-    cursor: pointer;
-    background: #d1d5db;
-    border-radius: 999px;
-    transition: .2s;
-}
-.slider:before {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    left: 3px;
-    top: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: .2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.25);
-}
-.switch input[type="checkbox"]:checked + .slider {
-    background: #22c55e;
-}
-.switch input[type="checkbox"]:checked + .slider:before {
-    transform: translateX(22px);
-}
-.inactive-toggle-row small {
-    display: block;
-    margin-top: 9px;
-    line-height: 1.5;
-}
-</style>
-
-<style>
-.switch .slider.is-on {
-    background: #22c55e !important;
-}
-.switch .slider.is-on:before {
-    transform: translateX(22px) !important;
-}
-</style>
-
-<style>
-/* Inaktív tag kapcsoló: BALRA = aktív, JOBBRA = inaktív */
-.switch {
-    display: inline-block !important;
-    position: relative !important;
-    width: 52px !important;
-    height: 28px !important;
-}
-
-.switch input[type="checkbox"] {
-    position: absolute !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-}
-
-.switch .slider {
-    position: absolute !important;
-    inset: 0 !important;
-    display: block !important;
-    background: #d1d5db !important;
-    border-radius: 999px !important;
-    cursor: pointer !important;
-    transition: background-color .2s ease !important;
-}
-
-.switch .slider::before {
-    content: "" !important;
-    position: absolute !important;
-    width: 22px !important;
-    height: 22px !important;
-    left: 3px !important;
-    top: 3px !important;
-    background: #ffffff !important;
-    border-radius: 50% !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,.25) !important;
-    transition: transform .2s ease !important;
-}
-
-.switch input[type="checkbox"]:checked + .slider {
-    background: #22c55e !important;
-}
-
-.switch input[type="checkbox"]:checked + .slider::before {
-    transform: translateX(24px) !important;
-}
-</style>
-
-<script>
-(function () {
-
-    const checkbox =
-        document.getElementById("editIsActive");
-
-    const hidden =
-        document.getElementById("editIsActiveValue");
-
-    const form =
-        document.getElementById("editForm");
-
-    function syncInactiveValue() {
-
-        if (!checkbox || !hidden) {
-            return;
-        }
-
-        // BALRA / unchecked = aktív = 1
-        // JOBBRA / checked = inaktív = 0
-        hidden.value =
-            checkbox.checked
-                ? "0"
-                : "1";
-    }
-
-    if (checkbox) {
-        checkbox.addEventListener(
-            "change",
-            syncInactiveValue
-        );
-    }
-
-    if (form) {
-        form.addEventListener(
-            "submit",
-            syncInactiveValue
-        );
-    }
-
-    syncInactiveValue();
-
-})();
-</script>
