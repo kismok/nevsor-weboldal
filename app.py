@@ -269,18 +269,38 @@ def _close_hl_session(conn, member_id, ended_at):
 def update_hl_activity(server_names):
     now = datetime.now()
     now_text = now.isoformat(timespec="seconds")
-    normalized = {_norm_hl_name(name): name for name in server_names if str(name).strip()}
+
+    # A szerverről érkező neveket normalizáljuk, de az eredeti nevet
+    # változatlanul megtartjuk. Az '_' karakter a név része marad.
+    normalized = {}
+    for server_name in server_names:
+        original = str(server_name or "").strip()
+        key = _norm_hl_name(original)
+        if key:
+            normalized[key] = original
+
     conn = get_connection()
     try:
-        members = conn.execute("SELECT id, name, hl_name FROM members WHERE is_active = 1").fetchall()
+        members = conn.execute(
+            "SELECT id, name, hl_name FROM members WHERE is_active = 1"
+        ).fetchall()
         matched = {}
+
         for member in members:
-            # A szerver a HL RPG nevet küldi, ezért mindig a külön megadott
-            # hl_name mezőt hasonlítjuk. Ha nincs megadva, a névsor neve a tartalék.
-            hl_name = (member["hl_name"] or member["name"] or "").strip()
-            key = _norm_hl_name(hl_name)
-            if key in normalized:
-                matched[member["id"]] = normalized[key]
+            # Elsődleges a külön megadott HL RPG név, de a normál névsor-nevet
+            # is elfogadjuk tartalékként. Így akkor is működik, ha a hl_name
+            # régi vagy eltérő, de a szerveren a névsor neve szerepel.
+            candidates = []
+            for candidate in (member["hl_name"], member["name"]):
+                candidate = str(candidate or "").strip()
+                if candidate and candidate not in candidates:
+                    candidates.append(candidate)
+
+            for candidate in candidates:
+                key = _norm_hl_name(candidate)
+                if key in normalized:
+                    matched[member["id"]] = normalized[key]
+                    break
 
         current_rows = conn.execute("SELECT member_id, started_at FROM hl_current").fetchall()
         current_ids = {row["member_id"] for row in current_rows}
