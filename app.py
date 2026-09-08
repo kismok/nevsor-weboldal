@@ -39,7 +39,7 @@ from flask import (
 # =========================================================
 
 HL_SERVER_HOST = os.environ.get("HL_SERVER_HOST", "57.128.211.127")
-HL_SERVER_PORT = int(os.environ.get("HL_SERVER_PORT", "22003"))
+HL_SERVER_PORT = int(os.environ.get("HL_SERVER_PORT", "22004"))
 HL_POLL_SECONDS = 5
 HL_QUERY_TIMEOUT = 2.5
 
@@ -239,6 +239,29 @@ def start_hl_tracker():
 
 
 def hl_member_stats(conn, member_id):
+    # Védelem: egy régebbi visszaállított DB-ben még hiányozhatnak a HL táblák.
+    # Ilyenkor se omoljon össze az oldal 500-as hibával.
+    try:
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS hl_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id INTEGER NOT NULL,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            seconds INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS hl_current (
+            member_id INTEGER PRIMARY KEY,
+            started_at TEXT NOT NULL,
+            last_seen TEXT NOT NULL,
+            FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
+        );
+        """)
+        conn.commit()
+    except sqlite3.Error:
+        pass
+
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -275,11 +298,14 @@ def hl_member_stats(conn, member_id):
         today_seconds += overlap_seconds(start, now, today_start, now)
         month_seconds += overlap_seconds(start, now, month_start, now)
 
+    # A weboldalon az "összes" játékidő helyett a havi játékidőt mutatjuk.
+    # Így minden hónap elsején automatikusan 0-ról indul a havi számláló.
     return {
         "online": online,
         "today_minutes": today_seconds // 60,
         "month_minutes": month_seconds // 60,
-        "total_minutes": total_seconds // 60,
+        "total_minutes": month_seconds // 60,
+        "all_time_minutes": total_seconds // 60,
     }
 
 
