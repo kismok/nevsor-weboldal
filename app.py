@@ -70,7 +70,7 @@ def _read_ase_string(data, pos):
 
 
 def query_hl_server():
-    """MTA ASE lekérdezés a pontos EYE1/MTA válaszformátummal."""
+    """MTA ASE EYE1 lekérdezés a teljes szabály- és játékosblokkal."""
     ase_port = HL_SERVER_PORT + 123
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(HL_QUERY_TIMEOUT)
@@ -83,19 +83,20 @@ def query_hl_server():
     if not data.startswith(b"EYE1"):
         raise ValueError("A HL RPG nem érvényes EYE1/ASE választ küldött")
 
-    # EYE1 után az első Pascal-mező az "mta" azonosító,
-    # utána pontosan 8 szerverinformációs mező következik.
     pos = 4
+
+    # EYE1 + Pascal string: "mta"
     game, pos = _read_ase_string(data, pos)
     if game.lower() != "mta":
         raise ValueError(f"Ismeretlen ASE játékazonosító: {game}")
 
+    # Pontosan 8 szerverinformációs mező:
+    # port, name, gamemode, map, version, password, players, maxplayers
     info = []
     for _ in range(8):
         value, pos = _read_ase_string(data, pos)
         info.append(value)
 
-    # info: port, name, gamemode, map, version, password, players, maxplayers
     server_name = info[1]
     try:
         player_count = int(info[6])
@@ -106,7 +107,12 @@ def query_hl_server():
     except Exception:
         max_players = 0
 
-    # A szerverinformációs rész 0x01 byte-tal zárul.
+    # Az info után szabályok jöhetnek. Ezeket végig kell olvasni,
+    # egészen a 0x01 játékosblokk-jelzőig.
+    while pos < len(data) and data[pos] != 0x01:
+        rule_name, pos = _read_ase_string(data, pos)
+        rule_value, pos = _read_ase_string(data, pos)
+
     if pos >= len(data):
         return {
             "server_name": server_name,
@@ -115,42 +121,36 @@ def query_hl_server():
             "names": [],
         }
 
-    if data[pos] == 0x01:
-        pos += 1
+    # 0x01 = szerverinfó/szabály rész vége, játékoslista kezdete.
+    pos += 1
 
-    # MTA ASE játékos rekordok:
-    # prefix, név, team, skin, score, ping, time.
-    # A prefix bitmaszkos/flag byte, ezért a 0x01/0x02/0x04/0x08/0x10/0x20
-    # értékeket fogadjuk el.
-    player_prefixes = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20}
+    # MTA ASE player-prefix: az MTA forrás szerint 0x3F.
+    # A korábbi kódban itt egy hibás halmaz volt, ezért a játékoslista
+    # nem lett beolvasva, miközben a szerver 33 játékost jelzett.
+    PLAYER_PREFIX = 0x3F
     players = []
 
-    while pos < len(data):
-        prefix = data[pos]
-        if prefix not in player_prefixes:
-            break
+    while pos < len(data) and data[pos] == PLAYER_PREFIX:
         pos += 1
 
         name, pos = _read_ase_string(data, pos)
 
-        # Team és skin: 1-1 byte.
+        # Team + Skin: 1-1 byte
         if pos + 2 > len(data):
             break
         pos += 2
 
-        # Score, ping: Pascal-string.
+        # Score + Ping: Pascal string
         score, pos = _read_ase_string(data, pos)
         ping, pos = _read_ase_string(data, pos)
 
-        # Time: 1 byte, nem használjuk.
+        # Time: 1 byte
         if pos < len(data):
             pos += 1
 
         if name:
             players.append(name)
 
-    # Biztonsági korlát: ha a szerver játékosszáma ismert,
-    # ne engedjünk hibásan továbbolvasott extra neveket.
     if player_count >= 0 and len(players) > player_count:
         players = players[:player_count]
 
@@ -160,6 +160,7 @@ def query_hl_server():
         "max_players": max_players,
         "names": players,
     }
+
 
 def _norm_hl_name(value):
     value = str(value or "").strip()
