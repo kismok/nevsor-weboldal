@@ -217,12 +217,15 @@ def update_hl_activity(server_names):
     normalized = {_norm_hl_name(name): name for name in server_names if str(name).strip()}
     conn = get_connection()
     try:
-        members = conn.execute("SELECT id, name FROM members WHERE is_active = 1").fetchall()
+        members = conn.execute("SELECT id, name, hl_name FROM members WHERE is_active = 1").fetchall()
         matched = {}
         for member in members:
-            key = _norm_hl_name(member["name"])
+            # A szerver a HL RPG nevet küldi, ezért mindig a külön megadott
+            # hl_name mezőt hasonlítjuk. Ha nincs megadva, a névsor neve a tartalék.
+            hl_name = (member["hl_name"] or member["name"] or "").strip()
+            key = _norm_hl_name(hl_name)
             if key in normalized:
-                matched[member["id"]] = member["name"]
+                matched[member["id"]] = normalized[key]
 
         current_rows = conn.execute("SELECT member_id, started_at FROM hl_current").fetchall()
         current_ids = {row["member_id"] for row in current_rows}
@@ -273,29 +276,6 @@ def start_hl_tracker():
 
 
 def hl_member_stats(conn, member_id):
-    # Védelem: egy régebbi visszaállított DB-ben még hiányozhatnak a HL táblák.
-    # Ilyenkor se omoljon össze az oldal 500-as hibával.
-    try:
-        conn.executescript("""
-        CREATE TABLE IF NOT EXISTS hl_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            member_id INTEGER NOT NULL,
-            started_at TEXT NOT NULL,
-            ended_at TEXT,
-            seconds INTEGER NOT NULL DEFAULT 0,
-            FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
-        );
-        CREATE TABLE IF NOT EXISTS hl_current (
-            member_id INTEGER PRIMARY KEY,
-            started_at TEXT NOT NULL,
-            last_seen TEXT NOT NULL,
-            FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
-        );
-        """)
-        conn.commit()
-    except sqlite3.Error:
-        pass
-
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -332,14 +312,11 @@ def hl_member_stats(conn, member_id):
         today_seconds += overlap_seconds(start, now, today_start, now)
         month_seconds += overlap_seconds(start, now, month_start, now)
 
-    # A weboldalon az "összes" játékidő helyett a havi játékidőt mutatjuk.
-    # Így minden hónap elsején automatikusan 0-ról indul a havi számláló.
     return {
         "online": online,
         "today_minutes": today_seconds // 60,
         "month_minutes": month_seconds // 60,
-        "total_minutes": month_seconds // 60,
-        "all_time_minutes": total_seconds // 60,
+        "total_minutes": total_seconds // 60,
     }
 
 
