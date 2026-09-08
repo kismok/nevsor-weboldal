@@ -173,57 +173,37 @@
         <nav>
 
             <a
-                class="{{ 'active' if not inactive_view else '' }}"
+                class="{{ "" if inactive_view else "active" }}"
                 href="/?month={{ selected_month }}"
             >
                 ☷ Névsor
             </a>
 
 
-            <a
-                class=""
-                href="/penalty-log"
-            >
+            <a href="/penalty-log">
                 ⚠ Hibapont napló
             </a>
 
-
-            <a
-                class=""
-                href="/cars"
-            >
+            <a href="/cars">
                 🚗 Kocsi lista
             </a>
 
-
-            <a
-                class=""
-                href="/tutorial"
-            >
+            <a href="/tutorial">
                 🔧 Szerelési Tutorial
             </a>
 
-
-            <a
-                class="{{ 'active' if inactive_view else '' }}"
-                href="/inactive"
-            >
+            <a class="{{ "active" if inactive_view else "" }}" href="/inactive">
                 ⛔ Inaktivitás
             </a>
 
 
             {% if logged_in %}
 
-            <a
-                href="/?month={{ selected_month }}#discord"
-            >
+            <a href="/?month={{ selected_month }}#discord">
                 ◉ Discord kapcsolatok
             </a>
 
-
-            <a
-                href="/casco"
-            >
+            <a href="/casco">
                 🛡️ Casco tervező
             </a>
 
@@ -1469,6 +1449,16 @@
                 name="payment_date"
             >
 
+            <label class="form-check">
+                <input
+                    type="checkbox"
+                    id="editInactive"
+                    name="is_active"
+                    value="0"
+                >
+                ⛔ Inaktívra rakás
+            </label>
+
 
             <button
                 class="primary full"
@@ -1906,6 +1896,13 @@ async function editMember(id) {
             )
             .value =
             m.payment_date || "";
+
+        document
+            .getElementById(
+                "editInactive"
+            )
+            .checked =
+            Number(m.is_active) === 0;
 
         document
             .getElementById(
