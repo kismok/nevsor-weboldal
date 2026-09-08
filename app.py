@@ -2527,6 +2527,32 @@ def member_detail(member_id):
 # HL RPG ÁLLAPOT / JÁTÉKIDŐ API
 # =========================================================
 
+@app.route("/jatekido")
+def jatekido():
+    """Játékidő oldal: a tagok eddig rögzített HL RPG játékideje névsor szerint."""
+    conn = db()
+    try:
+        members = conn.execute("""
+            SELECT id, name, hl_name, is_active
+            FROM members
+            ORDER BY name COLLATE NOCASE
+        """).fetchall()
+
+        member_stats = {}
+        for member in members:
+            member_stats[member["id"]] = hl_member_stats(conn, member["id"])
+    finally:
+        conn.close()
+
+    return render_template(
+        "jatekido.html",
+        members=members,
+        member_stats=member_stats,
+        logged_in=is_logged_in(),
+        current_username=get_current_username(),
+    )
+
+
 @app.route("/hl/status")
 def hl_status():
     conn = db()
