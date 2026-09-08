@@ -50,6 +50,7 @@ hl_runtime = {
     "server_name": "",
     "players": 0,
     "max_players": 0,
+    "debug": {},
 }
 hl_runtime_lock = threading.Lock()
 
@@ -119,16 +120,55 @@ def query_hl_server():
             "players": player_count,
             "max_players": max_players,
             "names": [],
+            "debug": {
+                "packet_len": len(data),
+                "rules_end_offset": pos,
+                "player_start_offset": None,
+                "player_start_hex": "",
+                "player_prefix": None,
+                "candidate_strings": [],
+            },
         }
 
     # 0x01 = szerverinfó/szabály rész vége, játékoslista kezdete.
     pos += 1
+    player_start = pos
 
     # MTA ASE játékoslista: a játékosblokk 0x3F prefixszel indul.
-    # A név ezután Pascal-stringként következik, az '_' karaktert
-    # teljes értékű névkarakterként meghagyjuk.
+    # A név ezután Pascal-stringként következik.
     PLAYER_PREFIX = 0x3F
     players = []
+
+    # Diagnosztika: a tényleges játékosblokk elejét és a következő
+    # Pascal-string jelölteket is megőrizzük. Ez most csak hibakereséshez kell.
+    debug_prefix = data[player_start:player_start + 96].hex(" ")
+    candidate_strings = []
+
+    # Ha a prefix nem ott van, keressünk néhány 0x3F előfordulást a
+    # következő 2 KB-ban, hogy lássuk, milyen formában jön a játékoslista.
+    search_end = min(len(data), player_start + 2048)
+    for idx in range(player_start, search_end):
+        if data[idx] != PLAYER_PREFIX:
+            continue
+        if idx + 2 > len(data):
+            continue
+        n = data[idx + 1]
+        end = idx + 2 + max(0, n - 1)
+        if n > 0 and end <= len(data):
+            raw = data[idx + 2:end]
+            try:
+                candidate = raw.decode("utf-8", errors="replace")
+            except Exception:
+                candidate = repr(raw)
+            if candidate and all(ord(ch) >= 32 for ch in candidate):
+                candidate_strings.append({
+                    "offset": idx,
+                    "prefix": "0x3F",
+                    "name": candidate,
+                    "name_len_byte": n,
+                })
+        if len(candidate_strings) >= 20:
+            break
 
     while pos < len(data) and data[pos] == PLAYER_PREFIX:
         pos += 1
@@ -159,6 +199,20 @@ def query_hl_server():
         "players": player_count,
         "max_players": max_players,
         "names": players,
+        "debug": {
+            "packet_len": len(data),
+            "rules_end_offset": player_start - 1,
+            "player_start_offset": player_start,
+            "player_start_hex": debug_prefix,
+            "player_prefix": (
+                f"0x{data[player_start]:02X}"
+                if player_start < len(data)
+                else None
+            ),
+            "candidate_strings": candidate_strings,
+            "parsed_names": players[:20],
+            "parsed_count": len(players),
+        },
     }
 
 
@@ -263,6 +317,7 @@ def hl_tracker_loop():
                     "server_name": result["server_name"],
                     "players": result["players"],
                     "max_players": result["max_players"],
+                    "debug": result.get("debug", {}),
                 })
         except Exception as exc:
             with hl_runtime_lock:
@@ -2471,6 +2526,22 @@ def hl_status():
         "poll_seconds": HL_POLL_SECONDS,
         "runtime": runtime,
         "members": data,
+    })
+
+
+@app.route("/hl/debug")
+def hl_debug():
+    """HL ASE nyers játékoslista diagnosztika."""
+    with hl_runtime_lock:
+        runtime = dict(hl_runtime)
+        runtime["online_names"] = list(runtime["online_names"])
+    return jsonify({
+        "server": f"{HL_SERVER_HOST}:{HL_SERVER_PORT}",
+        "runtime": runtime,
+        "message": (
+            "A debug mező a legutóbbi ASE csomag játékosrészének "
+            "kezdetét, hexét és a talált 0x3F névjelölteket mutatja."
+        ),
     })
 
 
