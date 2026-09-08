@@ -2859,6 +2859,10 @@ def restore_backup():
         # A régebbi adatbázisok kompatibilitási ellenőrzése/migrációja.
         init_db()
 
+        # A visszaállított régi DB nem feltétlenül tartalmazza az új
+        # HL RPG játékidő táblákat. Ezeket restore után is létre kell hozni.
+        ensure_hl_activity_tables()
+
         flash("✅ A biztonsági mentés sikeresen vissza lett állítva.")
 
     except Exception as e:
