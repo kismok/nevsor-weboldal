@@ -92,51 +92,15 @@
         </div>
 
         <nav>
-
-            <a
-                class=""
-                href="/"
-            >
-                ☷ Névsor
-            </a>
-
-            <a
-                class=""
-                href="/penalty-log"
-            >
-                ⚠ Hibapont napló
-            </a>
-
-            <a
-                class="active"
-                href="/cars"
-            >
-                🚗 Kocsi lista
-            </a>
-
-            <a
-                class=""
-                href="/tutorial"
-            >
-                🔧 Szerelési Tutorial
-            </a>
-
-            <a
-                class=""
-                href="/inactive"
-            >
-                ⛔ Inaktivitás
-            </a>
-
-
-            <a
-                href="/#discord"
-            >
-                ◉ Discord kapcsolatok
-            </a>
-
-        
-            <a href="/casco">🛡️ Casco tervező</a>
+            <a class="" href="/?month={{ selected_month if selected_month is defined else '' }}">☷ Névsor</a>
+            <a class="" href="/penalty-log">⚠ Hibapont napló</a>
+            <a class="active" href="/cars">🚗 Kocsi lista</a>
+            <a class="" href="/tutorial">🔧 Szerelési Tutorial</a>
+            <a class="" href="/inactive">⛔ Inaktivitás</a>
+            {% if logged_in %}
+            <a href="/?month={{ selected_month if selected_month is defined else '' }}#discord">◉ Discord kapcsolatok</a>
+            <a class="" href="/casco">🛡️ Casco tervező</a>
+            {% endif %}
         </nav>
 
     </aside>
