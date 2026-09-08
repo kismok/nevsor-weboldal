@@ -8,6 +8,8 @@ import io
 import tempfile
 import shutil
 import json
+import socket
+import time
 
 from openpyxl import Workbook
 
@@ -29,6 +31,256 @@ from flask import (
     send_file,
     flash
 )
+
+
+
+# =========================================================
+# HL RPG JÁTÉKIDŐ FIGYELŐ
+# =========================================================
+
+HL_SERVER_HOST = os.environ.get("HL_SERVER_HOST", "57.128.211.127")
+HL_SERVER_PORT = int(os.environ.get("HL_SERVER_PORT", "22003"))
+HL_POLL_SECONDS = 5
+HL_QUERY_TIMEOUT = 2.5
+
+hl_runtime = {
+    "online_names": set(),
+    "last_success": None,
+    "last_error": None,
+    "server_name": "",
+    "players": 0,
+    "max_players": 0,
+}
+hl_runtime_lock = threading.Lock()
+
+
+def _read_ase_string(data, pos):
+    if pos >= len(data):
+        raise ValueError("ASE adat vége")
+    length = data[pos]
+    pos += 1
+    if length == 0:
+        return "", pos
+    end = pos + length - 1
+    if end > len(data):
+        raise ValueError("ASE mező túl hosszú")
+    raw = data[pos:end]
+    pos = end
+    return raw.decode("utf-8", errors="replace"), pos
+
+
+def query_hl_server():
+    """MTA ASE lekérdezés. A szerverport +123 az ASE port (22003 -> 22126)."""
+    ase_port = HL_SERVER_PORT + 123
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(HL_QUERY_TIMEOUT)
+    try:
+        sock.sendto(b"s", (HL_SERVER_HOST, ase_port))
+        data, _ = sock.recvfrom(16384)
+    finally:
+        sock.close()
+
+    if not data.startswith(b"EYE1"):
+        raise ValueError("A HL RPG nem érvényes EYE1/ASE választ küldött")
+
+    payload = data[4:]
+    pos = 0
+    fields = []
+    while pos < len(payload):
+        value, pos = _read_ase_string(payload, pos)
+        fields.append(value)
+
+    if len(fields) < 9:
+        raise ValueError(f"Hiányos ASE válasz ({len(fields)} mező)")
+
+    # EYE1: gamename, port, name, gametype, map, version, password, players, maxplayers
+    server_name = fields[2]
+    try:
+        player_count = int(fields[7])
+    except Exception:
+        player_count = 0
+    try:
+        max_players = int(fields[8])
+    except Exception:
+        max_players = 0
+
+    # A modern MTA ASE válaszban a játékosok név/score/ping mezőkben jönnek.
+    # Csak a nevekre van szükségünk; a maradék mezőket biztonságosan figyelmen kívül hagyjuk.
+    players = []
+    remaining = fields[9:]
+    for i in range(0, len(remaining), 3):
+        if i < len(remaining):
+            name = remaining[i]
+            if name:
+                players.append(name)
+
+    # Ha a csomag más MTA build miatt eltérő, a játékosszám alapján legalább
+    # a nyers mezőkből próbálunk neveket kinyerni.
+    if player_count and len(players) > player_count:
+        players = players[:player_count]
+
+    return {
+        "server_name": server_name,
+        "players": player_count,
+        "max_players": max_players,
+        "names": players,
+    }
+
+
+def _norm_hl_name(value):
+    value = str(value or "").strip()
+    # MTA színkódok / vezérlők eltávolítása a név összehasonlításához.
+    value = re.sub(r"\^[0-9A-Fa-f]{6}", "", value)
+    value = "".join(ch for ch in value if ord(ch) >= 32)
+    return unicodedata.normalize("NFKC", value).casefold()
+
+
+def ensure_hl_activity_tables():
+    conn = get_connection()
+    try:
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS hl_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id INTEGER NOT NULL,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            seconds INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS hl_current (
+            member_id INTEGER PRIMARY KEY,
+            started_at TEXT NOT NULL,
+            last_seen TEXT NOT NULL,
+            FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
+        );
+        """)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _close_hl_session(conn, member_id, ended_at):
+    row = conn.execute(
+        "SELECT started_at FROM hl_current WHERE member_id = ?",
+        (member_id,)
+    ).fetchone()
+    if not row:
+        return
+    started = datetime.fromisoformat(row["started_at"])
+    ended = datetime.fromisoformat(ended_at)
+    seconds = max(0, int((ended - started).total_seconds()))
+    conn.execute("""
+        INSERT INTO hl_sessions (member_id, started_at, ended_at, seconds)
+        VALUES (?, ?, ?, ?)
+    """, (member_id, row["started_at"], ended_at, seconds))
+    conn.execute("DELETE FROM hl_current WHERE member_id = ?", (member_id,))
+
+
+def update_hl_activity(server_names):
+    now = datetime.now()
+    now_text = now.isoformat(timespec="seconds")
+    normalized = {_norm_hl_name(name): name for name in server_names if str(name).strip()}
+    conn = get_connection()
+    try:
+        members = conn.execute("SELECT id, name FROM members WHERE is_active = 1").fetchall()
+        matched = {}
+        for member in members:
+            key = _norm_hl_name(member["name"])
+            if key in normalized:
+                matched[member["id"]] = member["name"]
+
+        current_rows = conn.execute("SELECT member_id, started_at FROM hl_current").fetchall()
+        current_ids = {row["member_id"] for row in current_rows}
+        matched_ids = set(matched)
+
+        for member_id in matched_ids - current_ids:
+            conn.execute("""
+                INSERT OR REPLACE INTO hl_current (member_id, started_at, last_seen)
+                VALUES (?, ?, ?)
+            """, (member_id, now_text, now_text))
+
+        for member_id in matched_ids & current_ids:
+            conn.execute("UPDATE hl_current SET last_seen = ? WHERE member_id = ?", (now_text, member_id))
+
+        for member_id in current_ids - matched_ids:
+            _close_hl_session(conn, member_id, now_text)
+
+        conn.commit()
+        return matched
+    finally:
+        conn.close()
+
+
+def hl_tracker_loop():
+    while True:
+        try:
+            result = query_hl_server()
+            matched = update_hl_activity(result["names"])
+            with hl_runtime_lock:
+                hl_runtime.update({
+                    "online_names": set(matched.values()),
+                    "last_success": datetime.now().isoformat(timespec="seconds"),
+                    "last_error": None,
+                    "server_name": result["server_name"],
+                    "players": result["players"],
+                    "max_players": result["max_players"],
+                })
+        except Exception as exc:
+            with hl_runtime_lock:
+                hl_runtime["last_error"] = str(exc)
+        time.sleep(HL_POLL_SECONDS)
+
+
+def start_hl_tracker():
+    thread = threading.Thread(target=hl_tracker_loop, name="hl-rpg-tracker", daemon=True)
+    thread.start()
+    return thread
+
+
+def hl_member_stats(conn, member_id):
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    rows = conn.execute("""
+        SELECT started_at, ended_at, seconds
+        FROM hl_sessions
+        WHERE member_id = ?
+    """, (member_id,)).fetchall()
+
+    def overlap_seconds(start, end, window_start, window_end):
+        a = max(start, window_start)
+        b = min(end, window_end)
+        return max(0, int((b - a).total_seconds()))
+
+    today_seconds = 0
+    month_seconds = 0
+    total_seconds = 0
+    for row in rows:
+        start = datetime.fromisoformat(row["started_at"])
+        end = datetime.fromisoformat(row["ended_at"]) if row["ended_at"] else now
+        total_seconds += max(0, int((end - start).total_seconds()))
+        today_seconds += overlap_seconds(start, end, today_start, now)
+        month_seconds += overlap_seconds(start, end, month_start, now)
+
+    current = conn.execute(
+        "SELECT started_at FROM hl_current WHERE member_id = ?",
+        (member_id,)
+    ).fetchone()
+    online = bool(current)
+    if current:
+        start = datetime.fromisoformat(current["started_at"])
+        total_seconds += max(0, int((now - start).total_seconds()))
+        today_seconds += overlap_seconds(start, now, today_start, now)
+        month_seconds += overlap_seconds(start, now, month_start, now)
+
+    return {
+        "online": online,
+        "today_minutes": today_seconds // 60,
+        "month_minutes": month_seconds // 60,
+        "total_minutes": total_seconds // 60,
+    }
 
 
 # =========================================================
@@ -372,6 +624,19 @@ def init_db():
             ADD COLUMN is_active
             INTEGER NOT NULL DEFAULT 1
         """)
+
+    if "hl_name" not in column_names:
+
+        conn.execute("""
+            ALTER TABLE members
+            ADD COLUMN hl_name TEXT
+        """)
+
+    conn.execute("""
+        UPDATE members
+        SET hl_name = name
+        WHERE hl_name IS NULL OR TRIM(hl_name) = ''
+    """)
 
     conn.execute("""
         UPDATE members
@@ -1472,6 +1737,7 @@ def index():
             m.character_id,
             m.discord_user_id,
             m.discord_username,
+            m.hl_name,
             m.created_at,
             m.is_active,
 
@@ -1540,6 +1806,7 @@ def index():
             m.character_id,
             m.discord_user_id,
             m.discord_username,
+            m.hl_name,
             m.created_at,
             m.is_active,
             m.payment_exempt,
@@ -1554,6 +1821,11 @@ def index():
         query,
         params
     ).fetchall()
+
+    member_stats = {}
+    conn = db()
+    for member in members:
+        member_stats[member["id"]] = hl_member_stats(conn, member["id"])
 
     admins = []
 
@@ -1579,7 +1851,8 @@ def index():
         logged_in=is_logged_in(),
         current_username=get_current_username(),
         admins=admins,
-        inactive_view=inactive_view
+        inactive_view=inactive_view,
+        member_stats=member_stats
     )
 
 
@@ -1608,6 +1881,8 @@ def add_member():
         "character_id",
         ""
     ).strip()
+
+    hl_name = request.form.get("hl_name", "").strip() or name
 
     payment_status = request.form.get(
         "payment_status",
@@ -1673,14 +1948,16 @@ def add_member():
             (
                 name,
                 character_id,
+                hl_name,
                 payment_exempt,
                 created_at
             )
 
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
         """, (
             name,
             character_id,
+            hl_name,
             1 if status == 2 else 0,
             now
         ))
@@ -1747,6 +2024,8 @@ def edit_member(member_id):
         "character_id",
         ""
     ).strip()
+
+    hl_name = request.form.get("hl_name", "").strip() or name
 
     payment_status = request.form.get(
         "payment_status",
@@ -1828,6 +2107,7 @@ def edit_member(member_id):
             SET
                 name = ?,
                 character_id = ?,
+                hl_name = ?,
                 payment_exempt = ?,
                 is_active = ?
 
@@ -1835,6 +2115,7 @@ def edit_member(member_id):
         """, (
             name,
             character_id,
+            hl_name,
             1 if status == 2 else 0,
             is_active,
             member_id
@@ -2005,6 +2286,7 @@ def member_detail(member_id):
             m.character_id,
             m.discord_user_id,
             m.discord_username,
+            m.hl_name,
             m.is_active,
 
             CASE
@@ -2042,6 +2324,7 @@ def member_detail(member_id):
             m.character_id,
             m.discord_user_id,
             m.discord_username,
+            m.hl_name,
             m.payment_exempt,
             pmt.payment_status,
             pmt.payment_date
@@ -2083,6 +2366,9 @@ def member_detail(member_id):
         "discord_username":
             member["discord_username"],
 
+        "hl_name":
+            member["hl_name"],
+
         "is_active":
             int(
                 member["is_active"]
@@ -2116,6 +2402,37 @@ def member_detail(member_id):
                 for x in logs
             ]
 
+    })
+
+
+# =========================================================
+# HL RPG ÁLLAPOT / JÁTÉKIDŐ API
+# =========================================================
+
+@app.route("/hl/status")
+def hl_status():
+    conn = db()
+    try:
+        members = conn.execute("SELECT id, name, hl_name FROM members WHERE is_active = 1 ORDER BY name COLLATE NOCASE").fetchall()
+        data = []
+        for member in members:
+            stats = hl_member_stats(conn, member["id"])
+            data.append({
+                "id": member["id"],
+                "name": member["name"],
+                "hl_name": member["hl_name"] or member["name"],
+                **stats,
+            })
+    finally:
+        conn.close()
+    with hl_runtime_lock:
+        runtime = dict(hl_runtime)
+        runtime["online_names"] = list(runtime["online_names"])
+    return jsonify({
+        "server": f"{HL_SERVER_HOST}:{HL_SERVER_PORT}",
+        "poll_seconds": HL_POLL_SECONDS,
+        "runtime": runtime,
+        "members": data,
     })
 
 
@@ -4183,8 +4500,10 @@ def delete_casco(sheet_id):
 ensure_casco_table()
 
 init_db()
+ensure_hl_activity_tables()
 
 start_discord_bot()
+start_hl_tracker()
 
 
 # =========================================================
