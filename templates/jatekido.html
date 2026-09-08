@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Játékidő</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .playtime-table-wrap { overflow-x: auto; }
+        .playtime-table { width: 100%; border-collapse: collapse; }
+        .playtime-table th, .playtime-table td { padding: 13px 14px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; }
+        .playtime-table th { color: #caa84a; font-weight: 800; }
+        .playtime-table td.num { text-align: right; white-space: nowrap; }
+        .playtime-name { font-weight: 800; }
+        .playtime-sub { color: #888; font-size: 12px; margin-top: 3px; }
+        .playtime-online { color: #35e37a; font-weight: 800; }
+        .playtime-offline { color: #888; font-weight: 700; }
+        .playtime-inactive { opacity: .55; }
+        .playtime-note { margin: 0 0 18px; color: #aaa; }
+        @media (max-width: 700px) {
+            .playtime-table th:nth-child(2), .playtime-table td:nth-child(2) { display:none; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="brand">▣ <span>PRO GEAR GARAGE</span></div>
+        <nav>
+            <a href="/?month={{ selected_month if selected_month is defined else '' }}">☷ Névsor</a>
+            <a href="/penalty-log">⚠ Hibapont napló</a>
+            <a href="/cars">🚗 Kocsi lista</a>
+            <a href="/tutorial">🔧 Szerelési Tutorial</a>
+            <a class="active" href="/jatekido">⏱️ Játékidő</a>
+            <a href="/inactive">⛔ Inaktivitás</a>
+            {% if logged_in %}
+            <a href="/?month={{ selected_month if selected_month is defined else '' }}#discord">◉ Discord kapcsolatok</a>
+            <a href="/casco">🛡️ Casco tervező</a>
+            {% endif %}
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <div class="hamb">☰</div>
+            <div class="page-header-title" style="flex:1;padding-left:12px;font-weight:700;">⏱️ Játékidő</div>
+            <div class="auth-buttons">
+                {% if logged_in %}
+                <span class="logged-user">🔓 Szerkesztő mód</span>
+                <a href="/logout" class="secondary">Kijelentkezés</a>
+                {% else %}
+                <a href="/login" class="secondary">🔒 Bejelentkezés</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="title-row">
+                <div>
+                    <h1>⏱️ JÁTÉKIDŐ</h1>
+                    <p class="playtime-note">A HL RPG szerveren eddig rögzített játékidő, névsor szerinti sorrendben.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="playtime-table-wrap">
+                    <table class="playtime-table">
+                        <thead>
+                            <tr>
+                                <th>Név</th>
+                                <th>HL RPG név</th>
+                                <th>Állapot</th>
+                                <th class="num">Ebben a hónapban</th>
+                                <th class="num">Összes eddig</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for member in members %}
+                            {% set stats = member_stats[member['id']] %}
+                            <tr class="{{ 'playtime-inactive' if not member['is_active'] else '' }}">
+                                <td>
+                                    <div class="playtime-name">{{ member['name'] }}</div>
+                                </td>
+                                <td>
+                                    <div>{{ member['hl_name'] or member['name'] }}</div>
+                                </td>
+                                <td>
+                                    {% if stats.online %}
+                                    <span class="playtime-online">● ONLINE</span>
+                                    {% else %}
+                                    <span class="playtime-offline">● OFFLINE</span>
+                                    {% endif %}
+                                </td>
+                                <td class="num">{{ stats.month_minutes }} perc</td>
+                                <td class="num"><strong>{{ stats.total_minutes }} perc</strong></td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5">Nincs tag a névsorban.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
