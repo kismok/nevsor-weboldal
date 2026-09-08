@@ -221,7 +221,13 @@ def _norm_hl_name(value):
     # MTA színkódok / vezérlők eltávolítása a név összehasonlításához.
     value = re.sub(r"\^[0-9A-Fa-f]{6}", "", value)
     value = "".join(ch for ch in value if ord(ch) >= 32)
-    return unicodedata.normalize("NFKC", value).casefold()
+    value = unicodedata.normalize("NFKC", value)
+    # A webes névmezőben lehet szóköz, az MTA szerveren ugyanaz a név
+    # gyakran '_' karakterrel érkezik. Csak az összehasonlításhoz
+    # tekintjük a szóközt '_' karakternek; a tárolt/megjelenített nevet
+    # NEM módosítjuk. A szerveren lévő '_' karakterek változatlanok.
+    value = re.sub(r"\s+", "_", value)
+    return value.casefold()
 
 
 def ensure_hl_activity_tables():
@@ -270,8 +276,6 @@ def update_hl_activity(server_names):
     now = datetime.now()
     now_text = now.isoformat(timespec="seconds")
 
-    # A szerverről érkező neveket normalizáljuk, de az eredeti nevet
-    # változatlanul megtartjuk. Az '_' karakter a név része marad.
     normalized = {}
     for server_name in server_names:
         original = str(server_name or "").strip()
@@ -287,9 +291,6 @@ def update_hl_activity(server_names):
         matched = {}
 
         for member in members:
-            # Elsődleges a külön megadott HL RPG név, de a normál névsor-nevet
-            # is elfogadjuk tartalékként. Így akkor is működik, ha a hl_name
-            # régi vagy eltérő, de a szerveren a névsor neve szerepel.
             candidates = []
             for candidate in (member["hl_name"], member["name"]):
                 candidate = str(candidate or "").strip()
@@ -302,7 +303,9 @@ def update_hl_activity(server_names):
                     matched[member["id"]] = normalized[key]
                     break
 
-        current_rows = conn.execute("SELECT member_id, started_at FROM hl_current").fetchall()
+        current_rows = conn.execute(
+            "SELECT member_id, started_at FROM hl_current"
+        ).fetchall()
         current_ids = {row["member_id"] for row in current_rows}
         matched_ids = set(matched)
 
@@ -313,7 +316,10 @@ def update_hl_activity(server_names):
             """, (member_id, now_text, now_text))
 
         for member_id in matched_ids & current_ids:
-            conn.execute("UPDATE hl_current SET last_seen = ? WHERE member_id = ?", (now_text, member_id))
+            conn.execute(
+                "UPDATE hl_current SET last_seen = ? WHERE member_id = ?",
+                (now_text, member_id)
+            )
 
         for member_id in current_ids - matched_ids:
             _close_hl_session(conn, member_id, now_text)
@@ -322,7 +328,6 @@ def update_hl_activity(server_names):
         return matched
     finally:
         conn.close()
-
 
 def hl_tracker_loop():
     while True:
