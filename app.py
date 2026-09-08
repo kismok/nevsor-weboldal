@@ -124,13 +124,12 @@ def query_hl_server():
     # 0x01 = szerverinfó/szabály rész vége, játékoslista kezdete.
     pos += 1
 
-    # MTA ASE player-prefix: az MTA forrás szerint 0x3F.
-    # A korábbi kódban itt egy hibás halmaz volt, ezért a játékoslista
-    # nem lett beolvasva, miközben a szerver 33 játékost jelzett.
-    PLAYER_PREFIX = 0x3F
+    # MTA ASE játékosrekord-prefixek. Egy játékosrekord többféle
+    # prefixszel érkezhet; nem 0x3F egyetlen fix érték.
+    PLAYER_PREFIXES = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20}
     players = []
 
-    while pos < len(data) and data[pos] == PLAYER_PREFIX:
+    while pos < len(data) and data[pos] in PLAYER_PREFIXES:
         pos += 1
 
         name, pos = _read_ase_string(data, pos)
