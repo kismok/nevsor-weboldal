@@ -173,29 +173,52 @@
         <nav>
 
             <a
-                class="active"
+                class="{{ 'active' if not inactive_view else '' }}"
                 href="/?month={{ selected_month }}"
             >
                 ☷ Névsor
             </a>
 
-
-            <a href="/penalty-log">
+            <a
+                class=""
+                href="/penalty-log"
+            >
                 ⚠ Hibapont napló
             </a>
 
-
             <a
+                class=""
                 href="/cars"
             >
                 🚗 Kocsi lista
             </a>
 
+            <a
+                class=""
+                href="/tutorial"
+            >
+                🔧 Szerelési Tutorial
+            </a>
+
+            <a
+                class="{{ 'active' if inactive_view else '' }}"
+                href="/inactive"
+            >
+                ⛔ Inaktivitás
+            </a>
 
             {% if logged_in %}
 
-            <a href="#discord">
+            <a
+                href="/?month={{ selected_month if selected_month is defined else '' }}#discord"
+            >
                 ◉ Discord kapcsolatok
+            </a>
+
+            <a
+                href="/casco"
+            >
+                🛡️ Casco tervező
             </a>
 
             {% endif %}
@@ -755,8 +778,7 @@
 
                                 <td>
                                     <div class="hl-time">Ma: <b>{{ hs.get("today_minutes", 0) }} perc</b></div>
-                                    <div class="hl-time">Hét: <b>{{ hs.get("month_minutes", 0) }} perc</b></div>
-                                    <div class="hl-time">Összes: <b>{{ hs.get("total_minutes", 0) }} perc</b></div>
+                                    <div class="hl-time">Hónap: <b>{{ hs.get("month_minutes", 0) }} perc</b></div>
                                 </td>
 
                                 <td>
