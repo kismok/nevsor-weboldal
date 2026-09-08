@@ -55,6 +55,7 @@ hl_runtime_lock = threading.Lock()
 
 
 def _read_ase_string(data, pos):
+    """MTA ASE Pascal-string: 1 byte length, then length-1 bytes."""
     if pos >= len(data):
         raise ValueError("ASE adat vége")
     length = data[pos]
@@ -65,58 +66,92 @@ def _read_ase_string(data, pos):
     if end > len(data):
         raise ValueError("ASE mező túl hosszú")
     raw = data[pos:end]
-    pos = end
-    return raw.decode("utf-8", errors="replace"), pos
+    return raw.decode("utf-8", errors="replace"), end
 
 
 def query_hl_server():
-    """MTA ASE lekérdezés. A szerverport +123 az ASE port (22003 -> 22126)."""
+    """MTA ASE lekérdezés a pontos EYE1/MTA válaszformátummal."""
     ase_port = HL_SERVER_PORT + 123
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(HL_QUERY_TIMEOUT)
     try:
         sock.sendto(b"s", (HL_SERVER_HOST, ase_port))
-        data, _ = sock.recvfrom(16384)
+        data, _ = sock.recvfrom(65535)
     finally:
         sock.close()
 
     if not data.startswith(b"EYE1"):
         raise ValueError("A HL RPG nem érvényes EYE1/ASE választ küldött")
 
-    payload = data[4:]
-    pos = 0
-    fields = []
-    while pos < len(payload):
-        value, pos = _read_ase_string(payload, pos)
-        fields.append(value)
+    # EYE1 után az első Pascal-mező az "mta" azonosító,
+    # utána pontosan 8 szerverinformációs mező következik.
+    pos = 4
+    game, pos = _read_ase_string(data, pos)
+    if game.lower() != "mta":
+        raise ValueError(f"Ismeretlen ASE játékazonosító: {game}")
 
-    if len(fields) < 9:
-        raise ValueError(f"Hiányos ASE válasz ({len(fields)} mező)")
+    info = []
+    for _ in range(8):
+        value, pos = _read_ase_string(data, pos)
+        info.append(value)
 
-    # EYE1: gamename, port, name, gametype, map, version, password, players, maxplayers
-    server_name = fields[2]
+    # info: port, name, gamemode, map, version, password, players, maxplayers
+    server_name = info[1]
     try:
-        player_count = int(fields[7])
+        player_count = int(info[6])
     except Exception:
         player_count = 0
     try:
-        max_players = int(fields[8])
+        max_players = int(info[7])
     except Exception:
         max_players = 0
 
-    # A modern MTA ASE válaszban a játékosok név/score/ping mezőkben jönnek.
-    # Csak a nevekre van szükségünk; a maradék mezőket biztonságosan figyelmen kívül hagyjuk.
-    players = []
-    remaining = fields[9:]
-    for i in range(0, len(remaining), 3):
-        if i < len(remaining):
-            name = remaining[i]
-            if name:
-                players.append(name)
+    # A szerverinformációs rész 0x01 byte-tal zárul.
+    if pos >= len(data):
+        return {
+            "server_name": server_name,
+            "players": player_count,
+            "max_players": max_players,
+            "names": [],
+        }
 
-    # Ha a csomag más MTA build miatt eltérő, a játékosszám alapján legalább
-    # a nyers mezőkből próbálunk neveket kinyerni.
-    if player_count and len(players) > player_count:
+    if data[pos] == 0x01:
+        pos += 1
+
+    # MTA ASE játékos rekordok:
+    # prefix, név, team, skin, score, ping, time.
+    # A prefix bitmaszkos/flag byte, ezért a 0x01/0x02/0x04/0x08/0x10/0x20
+    # értékeket fogadjuk el.
+    player_prefixes = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20}
+    players = []
+
+    while pos < len(data):
+        prefix = data[pos]
+        if prefix not in player_prefixes:
+            break
+        pos += 1
+
+        name, pos = _read_ase_string(data, pos)
+
+        # Team és skin: 1-1 byte.
+        if pos + 2 > len(data):
+            break
+        pos += 2
+
+        # Score, ping: Pascal-string.
+        score, pos = _read_ase_string(data, pos)
+        ping, pos = _read_ase_string(data, pos)
+
+        # Time: 1 byte, nem használjuk.
+        if pos < len(data):
+            pos += 1
+
+        if name:
+            players.append(name)
+
+    # Biztonsági korlát: ha a szerver játékosszáma ismert,
+    # ne engedjünk hibásan továbbolvasott extra neveket.
+    if player_count >= 0 and len(players) > player_count:
         players = players[:player_count]
 
     return {
@@ -125,7 +160,6 @@ def query_hl_server():
         "max_players": max_players,
         "names": players,
     }
-
 
 def _norm_hl_name(value):
     value = str(value or "").strip()
