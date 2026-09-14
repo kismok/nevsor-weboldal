@@ -409,9 +409,9 @@
 
                                 <td>
 
-                                    {% if car["category"] == "kozep" %}
+                                    {% if car["category"] in ["kozep", "Közép", "Közép kategória"] %}
                                         Közép kategória
-                                    {% elif car["category"] == "felso" %}
+                                    {% elif car["category"] in ["felso", "Felső", "Felső kategória"] %}
                                         Felső kategória
                                     {% else %}
                                         Limitált / Egyedi
@@ -431,7 +431,11 @@
                                             onclick="openCarEdit(
                                                 {{ car['id'] }},
                                                 {{ car['car_type']|tojson }},
-                                                {{ car['category']|tojson }},
+                                                {{ (
+                                                    'kozep' if car['category'] in ['kozep', 'Közép', 'Közép kategória']
+                                                    else 'felso' if car['category'] in ['felso', 'Felső', 'Felső kategória']
+                                                    else 'limitalt'
+                                                )|tojson }}
                                             )"
                                             title="Szerkesztés"
                                         >
