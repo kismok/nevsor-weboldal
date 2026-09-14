@@ -45,6 +45,7 @@ HL_QUERY_TIMEOUT = 2.5
 
 hl_runtime = {
     "online_names": set(),
+    "server_online_names": set(),
     "last_success": None,
     "last_error": None,
     "server_name": "",
@@ -337,6 +338,7 @@ def hl_tracker_loop():
             with hl_runtime_lock:
                 hl_runtime.update({
                     "online_names": set(matched.values()),
+                    "server_online_names": set(result["names"]),
                     "last_success": datetime.now().isoformat(timespec="seconds"),
                     "last_error": None,
                     "server_name": result["server_name"],
@@ -2572,6 +2574,7 @@ def hl_status():
     with hl_runtime_lock:
         runtime = dict(hl_runtime)
         runtime["online_names"] = list(runtime["online_names"])
+        runtime["server_online_names"] = list(runtime.get("server_online_names", []))
     return jsonify({
         "server": f"{HL_SERVER_HOST}:{HL_SERVER_PORT}",
         "poll_seconds": HL_POLL_SECONDS,
@@ -2586,6 +2589,7 @@ def hl_debug():
     with hl_runtime_lock:
         runtime = dict(hl_runtime)
         runtime["online_names"] = list(runtime["online_names"])
+        runtime["server_online_names"] = list(runtime.get("server_online_names", []))
     return jsonify({
         "server": f"{HL_SERVER_HOST}:{HL_SERVER_PORT}",
         "runtime": runtime,
