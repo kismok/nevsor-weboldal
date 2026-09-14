@@ -42,6 +42,11 @@
             display: none !important;
             content: none !important;
         }
+
+.hl-server-box summary::-webkit-details-marker { display:none; }
+.hl-server-box summary { user-select:none; }
+.hl-server-box summary::after { content:"▾"; float:right; color:#aaa; transition:transform .2s; }
+.hl-server-box[open] summary::after { transform:rotate(180deg); }
 </style>
 
 <style>
@@ -668,11 +673,16 @@
 
 
 
-            <div class="hl-server-box" id="hlServerBox">
-                <b>🎮 HL RPG</b>
-                <span id="hlServerState" style="margin-left:12px;">⏳ Lekérdezés...</span>
-                <span id="hlServerPlayers" style="margin-left:12px;color:#aaa;"></span>
-            </div>
+            <details class="hl-server-box" id="hlServerBox">
+                <summary style="cursor:pointer; list-style:none;">
+                    <b>🎮 HL RPG</b>
+                    <span id="hlServerState" style="margin-left:12px;">⏳ Lekérdezés...</span>
+                    <span id="hlServerPlayers" style="margin-left:12px;color:#aaa;"></span>
+                </summary>
+                <div id="hlOnlinePlayers" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);">
+                    <span style="color:#aaa;">Játékoslista betöltése...</span>
+                </div>
+            </details>
 
 
             <!-- =====================================================
@@ -2931,10 +2941,25 @@ async function refreshHlActivity(){
             state.textContent = '🟢 ONLINE / FIGYELÉS AKTÍV';
             state.style.color = '#35e37a';
             players.textContent = `${data.runtime.players || 0}/${data.runtime.max_players || 0} játékos · 5 mp`;
+            const onlineBox = document.getElementById('hlOnlinePlayers');
+            if (onlineBox) {
+                const names = Array.isArray(data.runtime.online_names) ? data.runtime.online_names : [];
+                if (names.length) {
+                    onlineBox.innerHTML = names.map((name, i) =>
+                        `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+                            <span style="color:#35e37a;">●</span> ${escapeHtml(name)}
+                        </div>`
+                    ).join('');
+                } else {
+                    onlineBox.innerHTML = '<span style="color:#aaa;">Jelenleg nincs játékos a szerveren.</span>';
+                }
+            }
         } else {
             state.textContent = '🔴 HL lekérdezés sikertelen';
             state.style.color = '#ff5b5b';
             players.textContent = data.runtime?.last_error || '';
+            const onlineBox = document.getElementById('hlOnlinePlayers');
+            if (onlineBox) onlineBox.innerHTML = '<span style="color:#ff5b5b;">A játékoslista jelenleg nem érhető el.</span>';
         }
     } catch(e) {
         const state = document.getElementById('hlServerState');
