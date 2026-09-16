@@ -2119,6 +2119,45 @@ def add_member():
     )
 
 
+
+
+# =========================================================
+# TÖMEGES TAGNÉV SZERKESZTÉS
+# =========================================================
+
+@app.route("/members/bulk-name-edit", methods=["POST"])
+def bulk_name_edit():
+
+    if not require_login():
+        return redirect(url_for("login"))
+
+    payment_month = normalize_month(request.form.get("month", ""))
+    conn = db()
+
+    try:
+        rows = conn.execute("SELECT id FROM members").fetchall()
+
+        for row in rows:
+            field = f"name_{row['id']}"
+            if field not in request.form:
+                continue
+
+            new_name = request.form.get(field, "").strip()
+            if not new_name:
+                continue
+
+            conn.execute(
+                "UPDATE members SET name = ? WHERE id = ?",
+                (new_name, row["id"])
+            )
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return redirect(url_for("index", month=payment_month))
+
+
 # =========================================================
 # TAG SZERKESZTÉSE
 # =========================================================
