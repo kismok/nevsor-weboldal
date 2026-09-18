@@ -13,7 +13,8 @@ import time
 
 from openpyxl import Workbook
 
-from datetime import datetime, timedelta
+from datetime import datetime
+import difflib
 
 import discord
 from discord.ext import commands
@@ -46,6 +47,7 @@ HL_QUERY_TIMEOUT = 2.5
 hl_runtime = {
     "online_names": set(),
     "server_online_names": set(),
+    "name_mismatches": [],
     "last_success": None,
     "last_error": None,
     "server_name": "",
@@ -290,9 +292,17 @@ def update_hl_activity(server_names):
 
     conn = get_connection()
     try:
-        members = conn.execute(
-            "SELECT id, name, hl_name FROM members WHERE is_active = 1"
+        # Az eltéréseket minden névsor-tag alapján vizsgáljuk, nem csak az aktívaknál.
+        all_members = conn.execute(
+            "SELECT id, name, hl_name FROM members"
         ).fetchall()
+        members = [m for m in all_members if m["is_active"]]
+        roster_candidates = []
+        for m in all_members:
+            for candidate in (m["hl_name"], m["name"]):
+                candidate = str(candidate or "").strip()
+                if candidate and candidate not in roster_candidates:
+                    roster_candidates.append(candidate)
         matched = {}
 
         for member in members:
@@ -329,8 +339,29 @@ def update_hl_activity(server_names):
         for member_id in current_ids - matched_ids:
             _close_hl_session(conn, member_id, now_text)
 
+        # Minden szervernév, amelyhez nincs pontos egyezés, külön jelzésre kerül.
+        # Közel álló névnél megmutatjuk a lehetséges névsori nevet is.
+        matched_server_names = set(matched.values())
+        mismatches = []
+        for server_name in normalized.values():
+            if server_name in matched_server_names:
+                continue
+            best_name = None
+            best_ratio = 0.0
+            server_key = _norm_hl_name(server_name)
+            for candidate in roster_candidates:
+                ratio = difflib.SequenceMatcher(None, server_key, _norm_hl_name(candidate)).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_name = candidate
+            mismatches.append({
+                "server_name": server_name,
+                "suggested_roster_name": best_name if best_ratio >= 0.60 else None,
+                "similarity": round(best_ratio, 2),
+            })
+
         conn.commit()
-        return matched
+        return matched, mismatches
     finally:
         conn.close()
 
@@ -338,7 +369,7 @@ def hl_tracker_loop():
     while True:
         try:
             result = query_hl_server()
-            matched = update_hl_activity(result["names"])
+            matched, mismatches = update_hl_activity(result["names"])
             with hl_runtime_lock:
                 hl_runtime.update({
                     "online_names": set(matched.values()),
@@ -349,6 +380,7 @@ def hl_tracker_loop():
                     "players": result["players"],
                     "max_players": result["max_players"],
                     "debug": result.get("debug", {}),
+                    "name_mismatches": mismatches,
                 })
         except Exception as exc:
             with hl_runtime_lock:
@@ -2611,6 +2643,31 @@ def reset_jatekido_periods():
     return redirect(url_for("jatekido"))
 
 
+@app.route("/jatekido/refresh", methods=["POST"])
+def jatekido_refresh():
+    """Azonnali HL szerverlekérdezés és játékos/név-egyezés frissítés."""
+    require_login()
+    try:
+        result = query_hl_server()
+        matched, mismatches = update_hl_activity(result["names"])
+        with hl_runtime_lock:
+            hl_runtime.update({
+                "online_names": set(matched.values()),
+                "server_online_names": set(result["names"]),
+                "last_success": datetime.now().isoformat(timespec="seconds"),
+                "last_error": None,
+                "server_name": result["server_name"],
+                "players": result["players"],
+                "max_players": result["max_players"],
+                "debug": result.get("debug", {}),
+                "name_mismatches": mismatches,
+            })
+    except Exception as exc:
+        with hl_runtime_lock:
+            hl_runtime["last_error"] = str(exc)
+    return redirect(url_for("jatekido"))
+
+
 @app.route("/jatekido")
 def jatekido():
     """Játékidő oldal: a tagok eddig rögzített HL RPG játékideje névsor szerint."""
@@ -2628,10 +2685,16 @@ def jatekido():
     finally:
         conn.close()
 
+    with hl_runtime_lock:
+        name_mismatches = list(hl_runtime.get("name_mismatches", []))
+        server_online_names = list(hl_runtime.get("server_online_names", []))
+
     return render_template(
         "jatekido.html",
         members=members,
         member_stats=member_stats,
+        name_mismatches=name_mismatches,
+        server_online_names=server_online_names,
         logged_in=is_logged_in(),
         current_username=get_current_username(),
     )
