@@ -250,6 +250,10 @@ def ensure_hl_activity_tables():
             last_seen TEXT NOT NULL,
             FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS hl_duty_reset (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            reset_at TEXT NOT NULL
+        );
         """)
         conn.commit()
     finally:
@@ -361,7 +365,13 @@ def start_hl_tracker():
 def hl_member_stats(conn, member_id):
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=today_start.weekday())
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    reset_row = conn.execute(
+        "SELECT reset_at FROM hl_duty_reset WHERE id = 1"
+    ).fetchone()
+    reset_at = datetime.fromisoformat(reset_row["reset_at"]) if reset_row else None
 
     rows = conn.execute("""
         SELECT started_at, ended_at, seconds
@@ -375,14 +385,22 @@ def hl_member_stats(conn, member_id):
         return max(0, int((b - a).total_seconds()))
 
     today_seconds = 0
+    week_seconds = 0
     month_seconds = 0
     total_seconds = 0
     for row in rows:
         start = datetime.fromisoformat(row["started_at"])
         end = datetime.fromisoformat(row["ended_at"]) if row["ended_at"] else now
-        total_seconds += max(0, int((end - start).total_seconds()))
-        today_seconds += overlap_seconds(start, end, today_start, now)
-        month_seconds += overlap_seconds(start, end, month_start, now)
+        # A nullázás az összesített játékidőt is lenullázza:
+        # a reset előtti idő nem számít bele a total értékbe.
+        effective_total = reset_at if reset_at else datetime.min
+        total_seconds += overlap_seconds(start, end, effective_total, now)
+        effective_today = max(today_start, reset_at) if reset_at else today_start
+        effective_week = max(week_start, reset_at) if reset_at else week_start
+        effective_month = max(month_start, reset_at) if reset_at else month_start
+        today_seconds += overlap_seconds(start, end, effective_today, now)
+        week_seconds += overlap_seconds(start, end, effective_week, now)
+        month_seconds += overlap_seconds(start, end, effective_month, now)
 
     current = conn.execute(
         "SELECT started_at FROM hl_current WHERE member_id = ?",
@@ -391,13 +409,19 @@ def hl_member_stats(conn, member_id):
     online = bool(current)
     if current:
         start = datetime.fromisoformat(current["started_at"])
-        total_seconds += max(0, int((now - start).total_seconds()))
-        today_seconds += overlap_seconds(start, now, today_start, now)
-        month_seconds += overlap_seconds(start, now, month_start, now)
+        effective_total = reset_at if reset_at else datetime.min
+        total_seconds += overlap_seconds(start, now, effective_total, now)
+        effective_today = max(today_start, reset_at) if reset_at else today_start
+        effective_week = max(week_start, reset_at) if reset_at else week_start
+        effective_month = max(month_start, reset_at) if reset_at else month_start
+        today_seconds += overlap_seconds(start, now, effective_today, now)
+        week_seconds += overlap_seconds(start, now, effective_week, now)
+        month_seconds += overlap_seconds(start, now, effective_month, now)
 
     return {
         "online": online,
         "today_minutes": today_seconds // 60,
+        "week_minutes": week_seconds // 60,
         "month_minutes": month_seconds // 60,
         "total_minutes": total_seconds // 60,
     }
@@ -2567,6 +2591,25 @@ def member_detail(member_id):
 # =========================================================
 # HL RPG ÁLLAPOT / JÁTÉKIDŐ API
 # =========================================================
+
+@app.route("/jatekido/reset", methods=["POST"])
+def reset_jatekido_periods():
+    """A napi/heti/havi duty számlálók kézi nullázása minden tagnál.
+    A korábbi összesített játékidő és a futó sessionök megmaradnak.
+    """
+    require_login()
+    now_text = datetime.now().isoformat(timespec="seconds")
+    conn = db()
+    try:
+        conn.execute("""
+            INSERT INTO hl_duty_reset (id, reset_at) VALUES (1, ?)
+            ON CONFLICT(id) DO UPDATE SET reset_at = excluded.reset_at
+        """, (now_text,))
+        conn.commit()
+    finally:
+        conn.close()
+    return redirect(url_for("jatekido"))
+
 
 @app.route("/jatekido")
 def jatekido():
