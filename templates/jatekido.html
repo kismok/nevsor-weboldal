@@ -61,11 +61,29 @@
                     <p class="playtime-note">A HL RPG szerveren eddig rögzített játékidő, névsor szerinti sorrendben.</p>
                 </div>
                 {% if logged_in %}
+                <form method="post" action="/jatekido/refresh">
+                    <button type="submit" class="btn">🔄 Névsor / szerver frissítés</button>
+                </form>
                 <form method="post" action="/jatekido/reset" onsubmit="return confirm('Biztosan nullázod minden játékos napi, heti és havi duty percét? Az összes eddigi játékidő megmarad.');">
                     <button type="submit" class="btn">⟳ Duty 0-ázás</button>
                 </form>
                 {% endif %}
             </div>
+
+            {% if name_mismatches %}
+            <div class="card" style="margin-bottom:18px; border:1px solid rgba(255,60,40,.45); background:#090909;">
+                <h3 style="color:#ff2400; margin:0 0 10px;">⚠️ Név eltérés a HL szerverrel</h3>
+                <p style="color:#aaa; margin:0 0 12px;">Ezek a szerveren lévő nevek nem egyeznek pontosan a névsorban megadott névvel, ezért ezeknél a játékidő párosítása nem biztos.</p>
+                {% for item in name_mismatches %}
+                <div style="padding:9px 0; border-top:1px solid rgba(255,255,255,.08);">
+                    <strong style="color:#ff2400;">Szerveren: {{ item.server_name }}</strong>
+                    {% if item.suggested_roster_name %}
+                    <span style="color:#aaa;"> → lehetséges névsori név: </span><strong>{{ item.suggested_roster_name }}</strong>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             <div class="card">
                 <div class="playtime-table-wrap">
