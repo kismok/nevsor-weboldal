@@ -2964,17 +2964,39 @@ async function refreshHlActivity(){
 
             const onlineList = document.getElementById('hlServerOnlineList');
             if (onlineList) {
-                // Csak a Névsorban szereplő és ténylegesen ONLINE tagokat mutatjuk.
-                // A szerveren lévő többi játékos itt nem jelenik meg.
-                const names = Array.isArray(data.members)
-                    ? data.members
-                        .filter(member => member && member.online)
-                        .map(member => String(member.name || member.hl_name || '').trim())
-                        .filter(Boolean)
-                        .sort((a, b) => a.localeCompare(b, 'hu'))
+                // Csak a NÉVSORBAN szereplő tagokat mutatjuk.
+                // A szerver teljes játékoslistáját nem jelenítjük meg itt.
+                const normalizeHlName = (value) => {
+                    let v = String(value || '').trim();
+                    v = v.replace(/\^[0-9A-Fa-f]{6}/g, '');
+                    v = v.normalize('NFKC').replace(/\s+/g, '_').toLowerCase();
+                    return v;
+                };
+
+                // Az online listához kizárólag a névsorral PONTOSAN párosított
+                // játékosokat használjuk. A server_online_names a teljes szerverlista.
+                const serverNames = Array.isArray(data.runtime.online_names)
+                    ? data.runtime.online_names
                     : [];
+
+                const rosterNames = new Map();
+                (Array.isArray(data.members) ? data.members : []).forEach(member => {
+                    const candidates = [member.hl_name, member.name];
+                    candidates.forEach(candidate => {
+                        const key = normalizeHlName(candidate);
+                        if (key && !rosterNames.has(key)) {
+                            rosterNames.set(key, String(candidate).trim());
+                        }
+                    });
+                });
+
+                const names = serverNames
+                    .filter(serverName => rosterNames.has(normalizeHlName(serverName)))
+                    .map(serverName => rosterNames.get(normalizeHlName(serverName)))
+                    .filter((name, index, arr) => arr.indexOf(name) === index)
+                    .sort((a, b) => String(a).localeCompare(String(b), 'hu'));
                 if (names.length) {
-                    onlineList.innerHTML = '<div style="font-weight:800;margin-bottom:8px;">Névsorból jelenleg fent lévők:</div>' +
+                    onlineList.innerHTML = '<div style="font-weight:800;margin-bottom:8px;">Jelenleg fent lévők:</div>' +
                         names.map((name, i) => `<div style="padding:5px 0;color:#ff2400;">${i + 1}. ${escapeHtml(name)}</div>`).join('');
                 } else {
                     onlineList.innerHTML = '<div style="color:#888;">Jelenleg senki nincs fent.</div>';
