@@ -60,6 +60,11 @@
                     <h1>⏱️ JÁTÉKIDŐ</h1>
                     <p class="playtime-note">A HL RPG szerveren eddig rögzített játékidő, névsor szerinti sorrendben.</p>
                 </div>
+                {% if logged_in %}
+                <form method="post" action="/jatekido/reset" onsubmit="return confirm('Biztosan nullázod minden játékos napi, heti és havi duty percét? Az összes eddigi játékidő megmarad.');">
+                    <button type="submit" class="btn">⟳ Duty 0-ázás</button>
+                </form>
+                {% endif %}
             </div>
 
             <div class="card">
@@ -70,7 +75,9 @@
                                 <th>Név</th>
                                 <th>HL RPG név</th>
                                 <th>Állapot</th>
-                                <th class="num">Ebben a hónapban</th>
+                                <th class="num">Ma</th>
+                                <th class="num">Hét</th>
+                                <th class="num">Hónap</th>
                                 <th class="num">Összes eddig</th>
                             </tr>
                         </thead>
@@ -91,11 +98,13 @@
                                     <span class="playtime-offline">● OFFLINE</span>
                                     {% endif %}
                                 </td>
+                                <td class="num">{{ stats.today_minutes }} perc</td>
+                                <td class="num">{{ stats.week_minutes }} perc</td>
                                 <td class="num">{{ stats.month_minutes }} perc</td>
                                 <td class="num"><strong>{{ stats.total_minutes }} perc</strong></td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="5">Nincs tag a névsorban.</td></tr>
+                            <tr><td colspan="7">Nincs tag a névsorban.</td></tr>
                         {% endfor %}
                         </tbody>
                     </table>
