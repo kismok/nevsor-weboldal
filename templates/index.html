@@ -2964,11 +2964,17 @@ async function refreshHlActivity(){
 
             const onlineList = document.getElementById('hlServerOnlineList');
             if (onlineList) {
-                const names = Array.isArray(data.runtime.server_online_names)
-                    ? data.runtime.server_online_names.slice().sort((a, b) => String(a).localeCompare(String(b), 'hu'))
+                // Csak a Névsorban szereplő és ténylegesen ONLINE tagokat mutatjuk.
+                // A szerveren lévő többi játékos itt nem jelenik meg.
+                const names = Array.isArray(data.members)
+                    ? data.members
+                        .filter(member => member && member.online)
+                        .map(member => String(member.name || member.hl_name || '').trim())
+                        .filter(Boolean)
+                        .sort((a, b) => a.localeCompare(b, 'hu'))
                     : [];
                 if (names.length) {
-                    onlineList.innerHTML = '<div style="font-weight:800;margin-bottom:8px;">Jelenleg fent lévők:</div>' +
+                    onlineList.innerHTML = '<div style="font-weight:800;margin-bottom:8px;">Névsorból jelenleg fent lévők:</div>' +
                         names.map((name, i) => `<div style="padding:5px 0;color:#ff2400;">${i + 1}. ${escapeHtml(name)}</div>`).join('');
                 } else {
                     onlineList.innerHTML = '<div style="color:#888;">Jelenleg senki nincs fent.</div>';
