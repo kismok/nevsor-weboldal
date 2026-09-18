@@ -431,11 +431,7 @@
                                             onclick="openCarEdit(
                                                 {{ car['id'] }},
                                                 {{ car['car_type']|tojson }},
-                                                {{ (
-                                                    'kozep' if car['category'] in ['kozep', 'Közép', 'Közép kategória']
-                                                    else 'felso' if car['category'] in ['felso', 'Felső', 'Felső kategória']
-                                                    else 'limitalt'
-                                                )|tojson }}
+                                                {{ ('kozep' if car['category'] in ['kozep', 'Közép', 'Közép kategória'] else 'felso' if car['category'] in ['felso', 'Felső', 'Felső kategória'] else 'limitalt')|tojson }}
                                             )"
                                             title="Szerkesztés"
                                         >
