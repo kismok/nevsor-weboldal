@@ -1176,7 +1176,15 @@ def normalize_car_category(value):
         "Limitált/Egyedi": "Limitált / Egyedi",
         "Limitált / Egyedi": "Limitált / Egyedi",
         "Közép": "Közép kategória",
-        "Felső": "Felső kategória"
+        "Közép kategória": "Közép kategória",
+        "kozep": "Közép kategória",
+        "Felso": "Felső kategória",
+        "felso": "Felső kategória",
+        "Felső": "Felső kategória",
+        "Felső kategória": "Felső kategória",
+        "limitalt": "Limitált / Egyedi",
+        "Limitált": "Limitált / Egyedi",
+        "Limitált / Egyedi": "Limitált / Egyedi"
     }
 
     value = aliases.get(
