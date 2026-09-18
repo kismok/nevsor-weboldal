@@ -13,7 +13,7 @@ import time
 
 from openpyxl import Workbook
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
