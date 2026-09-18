@@ -354,11 +354,15 @@ def update_hl_activity(server_names):
                 if ratio > best_ratio:
                     best_ratio = ratio
                     best_name = candidate
-            mismatches.append({
-                "server_name": server_name,
-                "suggested_roster_name": best_name if best_ratio >= 0.60 else None,
-                "similarity": round(best_ratio, 2),
-            })
+            # Csak olyan szervernevet jelenítünk meg eltérésként, amely
+            # ténylegesen valamelyik névsori névhez hasonló.
+            # A szerver teljes játékoslistáját nem listázzuk ki.
+            if best_ratio >= 0.60:
+                mismatches.append({
+                    "server_name": server_name,
+                    "suggested_roster_name": best_name,
+                    "similarity": round(best_ratio, 2),
+                })
 
         conn.commit()
         return matched, mismatches
